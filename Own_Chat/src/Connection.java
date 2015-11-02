@@ -77,3 +77,58 @@ public class Connection {
     
   }
 }
+//import java.io.BufferedReader;
+//import java.io.IOException;
+//import java.io.PrintWriter;
+//import java.net.Socket;
+
+
+//public class Connection {
+	
+//	public PrintWriter pw;
+//	public Socket socket;
+	
+//	public Connection(Socket s)throws IOException{
+//		socket=s;
+//		pw = new PrintWriter(socket.getOutputStream());
+		
+//	}
+
+//	public void close()throws IOException{
+//		socket.close();
+//	}
+//	
+//	public Command receive(){
+//		
+//	}
+	
+	
+	
+//	public void sendNickHello(String nick){
+//		pw.println("ChatApp2015 user "+nick);
+//	}
+	
+//	public void sendNickBusy(String nick){
+//		pw.println("ChatApp2015 user "+nick+" busy");
+//	}
+	
+//	public void accept(){
+//		pw.println("Accepted");
+//	}
+	
+//	public void reject(){
+//		pw.println("Rejected");
+//	}
+	
+//	public void disconnect(){
+//		socket=null;
+//	}
+	
+//	public void sendMessage(String msg){
+//		pw.println(msg);
+//	}
+	
+//	public static void main(String[] args){
+		
+//	}
+//}
