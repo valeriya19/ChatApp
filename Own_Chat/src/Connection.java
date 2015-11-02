@@ -77,3 +77,53 @@ public class Connection {
     
   }
 }
+
+// >>KATE
+
+//public class Connection {
+//	
+//	public Connection(java.net.Socket s){
+//		
+//	}
+////	public boolean isOpen(){
+////		
+////	}
+//
+//	public void close(){
+//		
+//	}
+////	
+////	public Command receive(){
+////		
+////	}
+//	
+//	
+//	
+//	public void sendNickHello(java.lang.String ver, java.lang.String nick){
+//		
+//	}
+//	
+//	public void sendNickBusy(java.lang.String ver, java.lang.String nick){
+//		
+//	}
+//	
+//	public void accept(){
+//		
+//	}
+//	
+//	public void reject(){
+//		
+//	}
+//	
+//	public void disconnect(){
+//		
+//	}
+//	
+//	public void sendMessage(java.lang.String msg){
+//		
+//	}
+//	
+//	public static void main(java.lang.String[] args){
+//		
+//	}
+//}
