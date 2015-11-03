@@ -1,4 +1,4 @@
-.*
+﻿.*
 *.class
 
 # Mobile Tools for Java (J2ME)
@@ -14,3 +14,5 @@ hs_err_pid*
 /Own_Chat/nbproject/
 /Own_Chat/build.xml
 /Own_Chat/manifest.mf
+/Own_Chat/src/Собственный_стиль/
+.gitignore

@@ -63,6 +63,14 @@ public class Connection {
     output.flush();
   }
   */
+
+  public void sendNickHello(String version, String nick_name) {
+    output.write("ChatApp " + version + " user " + nick_name + "\n");
+  }
+
+  public void sendNickBusy(String version, String nick_name) {
+    output.write("ChatApp " + version + " user " + nick_name + " busy" + "\n");
+  }
   
   public void disconnect() throws IOException {
     output.write("DISCONNECT");
