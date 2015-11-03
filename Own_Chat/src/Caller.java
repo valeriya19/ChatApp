@@ -15,11 +15,13 @@ public class Caller {
 	 private final byte code;
 	 
 	public Caller(){
-		
+		this.localNick = "unnamed"; 
+		this.remoteAddress = getRemoteAddress(); 
 	}
 
 	public Caller(String localNick){
 		this.localNick=localNick;
+		this.remoteAddress = getRemoteAddress(); 
 	}
 	public Caller(String localNick, SocketAddress remoteAddress){
 		this.localNick=localNick;
@@ -29,14 +31,16 @@ public class Caller {
 	public Caller(String localNick,String ip){
 		this.localNick=localNick;
 		this.ip=ip;
+		this.remoteAddress = getRemoteAddress(); 
 	}
 	
 	//”станавливает исход€щее соединение. ¬озвращает результат только после удаленного подтверждени€ (или неподтверждени€) беседы. ѕодробный результат звонка доступен в поле status.
 	
 	public Connection call() throws IOException{
 		s.connect(new InetSocketAddress(ip, 28411));
-		if (status == false) {
-				return s;}
+		if (status) {
+				return  call=new Connection(s);}
+		//
 	}
 	
 	public String getLocalNick(){
@@ -48,7 +52,7 @@ public class Caller {
 	}
 	
 	public String getRemoteNick(){
-	
+		return localNick;
 	}
 	
 	public Caller.CallStatus getStatus(){
@@ -56,22 +60,23 @@ public class Caller {
 	}
 	
 	public void setLocalNick(String localNick){
-		
+		this.localNick = localNick;
 	}
 	
 	public void setRemoteAddress(SocketAddress remoteAddress){
-		
+		this.localNick = localNick;
 	}
 	
 	protected Caller (byte callStatusIndex) {
 	    code = callStatusIndex;
 	  }
 	 private static enum CallStatus{BUSY, NO_SERVICE, NOT_ACCESSIBLE, OK, REJECTED};
-	 public static Caller getCall(String text) {
-		    for (CallStatus cs: CallStatus.values())
-		      if (text.equals(cs.name()))
-			return new Caller((byte) cs.ordinal());
-		    return null;
-		  }
+	
+//	 public static Caller getCall(String text) {
+//		    for (CallStatus cs: CallStatus.values())
+//		      if (text.equals(cs.name()))
+//			return new Caller((byte) cs.ordinal());
+//		    return null;
+//		  }
 	
 }
