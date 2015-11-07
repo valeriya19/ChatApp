@@ -7,8 +7,8 @@ class Command {
   private final byte code;
   private static enum CommandType {NICK, DISCONNECT, ACCEPT, REJECT, MESSAGE};
   
-  protected Command(byte command_type_index) {
-    code = command_type_index;
+  protected Command(byte commandTypeIndex) {
+    code = commandTypeIndex;
   }
   
   public static Command getCommand(String text) {

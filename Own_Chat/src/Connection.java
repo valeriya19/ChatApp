@@ -9,22 +9,22 @@ import java.util.Scanner;
  */
 public class Connection {
 
-  private Socket connection_socket;
+  private Socket connectionSocket;
   private final Scanner input;
   private final PrintWriter output;
   
-  public Connection(Socket remote_connection) throws IOException {
-    connection_socket = remote_connection;
-    input = new Scanner(this.connection_socket.getInputStream(), "UTF-8");
-    output = new PrintWriter(this.connection_socket.getOutputStream(), true);
+  public Connection(Socket remoteConnection) throws IOException {
+    connectionSocket = remoteConnection;
+    input = new Scanner(this.connectionSocket.getInputStream(), "UTF-8");
+    output = new PrintWriter(this.connectionSocket.getOutputStream(), true);
   }
   
   public boolean isOpen() {
-    return connection_socket != null;
+    return connectionSocket != null;
   }
   
   public boolean isConnected() {
-    return connection_socket.isConnected();
+    return connectionSocket.isConnected();
   }
   
   public Command receive() throws IOException {
@@ -39,21 +39,21 @@ public class Connection {
     output.write("REJECTED\n");
   }
 
-  public void sendNickHello(String version, String nick_name) throws IOException {
-    output.write("ChatApp " + version + " user " + nick_name + "\n");
+  public void sendNickHello(String version, String nickName) throws IOException {
+    output.write("ChatApp " + version + " user " + nickName + "\n");
   }
 
-  public void sendNickBusy(String version, String nick_name) throws IOException {
-    output.write("ChatApp " + version + " user " + nick_name + " busy" + "\n");
+  public void sendNickBusy(String version, String nickName) throws IOException {
+    output.write("ChatApp " + version + " user " + nickName + " busy" + "\n");
   }
   
   public void disconnect() throws IOException {
     output.write("DISCONNECT");
-    connection_socket.close();
+    connectionSocket.close();
   }
   
   public void close() {
-    connection_socket = null;
+    connectionSocket = null;
   }
   
   public void sendMessage(String message) throws IOException {
