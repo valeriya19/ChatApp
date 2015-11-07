@@ -14,15 +14,19 @@ class Command {
   public static Command getCommand(String text) {
     String capital_text = text.toUpperCase();
     if ((capital_text.indexOf("CHATAPP ", 0) > -1) && (text.indexOf(" USER ", 9) > 8) && (text.indexOf("\n", 16) > 15))
-      return new Command((byte) 0);
+      return new Command((byte) CommandType.NICK.ordinal());
     if (capital_text.equals("DISCONNECT\n"))
-      return new Command((byte) 1);
+      return new Command((byte) CommandType.DISCONNECT.ordinal());
     if (capital_text.equals("ACCEPTED\n"))
-      return new Command((byte) 2);
+      return new Command((byte) CommandType.ACCEPT.ordinal());
     if (capital_text.equals("REJECTED\n"))
-      return new Command((byte) 3);
+      return new Command((byte) CommandType.REJECT.ordinal());
     if (capital_text.equals("MESSAGE\n"))
-      return new Command((byte) 4);
+      return new Command((byte) CommandType.MESSAGE.ordinal());
     return null;
+  }
+  
+  public CommandType getType() {
+    return CommandType.values()[code];
   }
 }
