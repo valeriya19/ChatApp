@@ -5,7 +5,7 @@
 class Command {
   
   private final byte code;
-  private static enum CommandType {GREETING, FAREWELL, ACCEPTION, REJECTION, MESSAGE};
+  private static enum CommandType {NICK, DISCONNECT, ACCEPT, REJECT, MESSAGE};
   
   protected Command(byte command_type_index) {
     code = command_type_index;

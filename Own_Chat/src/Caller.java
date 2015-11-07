@@ -2,9 +2,11 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
-import Command.Command_Type;
 
-
+/**
+ *
+ * @author katebudyanskaya
+ */
 public class Caller {
 	private String localNick;
 	private SocketAddress remoteAddress;
@@ -12,7 +14,7 @@ public class Caller {
 	private boolean status;
 	private Socket s;
 	private Connection call;
-	 private final byte code;
+	private final byte code;
 	 
 	public Caller(){
 		this.localNick = "unnamed"; 
@@ -34,12 +36,12 @@ public class Caller {
 		this.remoteAddress = getRemoteAddress(); 
 	}
 	
-	//Устанавливает исходящее соединение. Возвращает результат только после удаленного подтверждения (или неподтверждения) беседы. Подробный результат звонка доступен в поле status.
+	//пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ (пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ) пїЅпїЅпїЅпїЅпїЅпїЅ. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅ status.
 	
 	public Connection call() throws IOException{
 		s.connect(new InetSocketAddress(ip, 28411));
 		if (status) {
-				return  call=new Connection(s);}
+			return  call=new Connection(s);}
 		//
 	}
 	
@@ -68,15 +70,16 @@ public class Caller {
 	}
 	
 	protected Caller (byte callStatusIndex) {
-	    code = callStatusIndex;
-	  }
-	 private static enum CallStatus{BUSY, NO_SERVICE, NOT_ACCESSIBLE, OK, REJECTED};
+		code = callStatusIndex;
+	}
 	
-//	 public static Caller getCall(String text) {
-//		    for (CallStatus cs: CallStatus.values())
-//		      if (text.equals(cs.name()))
-//			return new Caller((byte) cs.ordinal());
-//		    return null;
-//		  }
+	private static enum CallStatus{BUSY, NO_SERVICE, NOT_ACCESSIBLE, OK, REJECTED};
+	
+//	public static Caller getCall(String text) {
+//		for (CallStatus cs: CallStatus.values())
+//			if (text.equals(cs.name()))
+//				return new Caller((byte) cs.ordinal());
+//		return null;
+//	}
 	
 }
