@@ -34,9 +34,14 @@ class CommandListenerThread extends Observable implements Runnable {
   public void run() {
     do {
       try {
-	lastCommand = connection.receive();
-      } catch (IOException ex) {}
-      notifyObservers();
+	Command checked = connection.receive();
+	if (checked != null) {
+	  lastCommand = checked;
+	  notifyObservers();
+	}  
+      } catch (IOException ex) {
+	stopped = true;
+      } 
     } while (! stopped);
   }
   
