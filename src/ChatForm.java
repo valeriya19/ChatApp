@@ -1,15 +1,9 @@
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableColumn;
-import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.BufferedImage;
-import java.awt.image.ImageObserver;
 import java.io.*;
-import java.util.Scanner;
 import java.util.Vector;
 
 
@@ -33,6 +27,14 @@ public class ChatForm extends JFrame {
         super();
         setContentPane(rootPanel);
         setSize(700, 500);
+
+        Connect.setEnabled(false);
+        Disconnect.setEnabled(false);
+        textFieldIp.setEnabled(false);
+        textFieldNick.setEnabled(false);
+        tableFriends.setEnabled(false);
+        buttonAddFriends.setEnabled(false);
+
         //
 
 
@@ -65,7 +67,8 @@ public class ChatForm extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 Main.form.setVisible(false);
-                Main.friendsForm.setVisible(true);
+                Main.messageForm= new MessageForm(textFieldNick.getText(),textFieldIp.getText());
+
             }
         });
 
@@ -166,6 +169,34 @@ public class ChatForm extends JFrame {
         });
         //
 
+        //событие на нажатие кнопки изменения локального ника
+        ButtonChangeLocalNick.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!textFieldLocalNick.getText().isEmpty()) {
+                    Main.LocalNick = textFieldLocalNick.getText();
+                    Connect.setEnabled(true);
+                    Disconnect.setEnabled(true);
+                    textFieldIp.setEnabled(true);
+                    textFieldNick.setEnabled(true);
+                    tableFriends.setEnabled(true);
+                    buttonAddFriends.setEnabled(true);
+
+                    textFieldLocalNick.setEnabled(false);
+                    ButtonChangeLocalNick.setEnabled(false);
+                }
+
+            }
+        });
+
+        textFieldLocalNick.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyChar()=='\n')
+                    ButtonChangeLocalNick.doClick();
+                super.keyPressed(e);
+            }
+        });
     }
 }
 
