@@ -87,7 +87,7 @@ public class ChatForm extends JFrame {
         //
         status=-1;
 
-        Connect.addActionListener(new ActionListener() { //пїЅпїЅпїЅпїЅпїЅпїЅпїЅ - пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ connect
+        Connect.addActionListener(new ActionListener() { //при нахатии на connect создаес поток и подключение к серверу
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (connection!=null)
@@ -110,7 +110,7 @@ public class ChatForm extends JFrame {
                             commandListenerClient = new CommandListenerThread(connection);
 
                             try {
-                                connection.sendNickHello("2015", Main.LocalNick);
+                                connection.sendNickHello("2015", Main.LocalNick);//отпраляется при подключение ник
                             } catch (IOException e1) {
                                 e1.printStackTrace();
                             }
@@ -234,15 +234,15 @@ public class ChatForm extends JFrame {
                     textFieldLocalNick.setEnabled(false);
                     ButtonChangeLocalNick.setEnabled(false);
 
-                    status=0;
+                    status=0;//при нжатии на эплай создается поток в котором запускается слушатель для сервера
                     Runnable runnable = new Runnable() {
                         @Override
                         public void run() {
                             try {
 
                                 callerListener= new CallerListener();
-                                callerListener.setLocalNick(Main.LocalNick);
-                                commandListenerServer = new CommandListenerThread(callerListener.getConnection());
+                                callerListener.setLocalNick(Main.LocalNick);//запускаем сам сервер передаем ник
+                                commandListenerServer = new CommandListenerThread(callerListener.getConnection());//реестрируем открытое соеденение классу который умеет слушать открытое соединение
 
                                 commandListenerServer.start();
 
@@ -276,11 +276,66 @@ public class ChatForm extends JFrame {
 
     void NewMessage(String msgText){}
 
-    void NewConnection(String ip,String nick){}
+    void NewConnection(String ip,String nick) {
+        Object[] option = {"Connect", "Disconnect"};
 
-    void AcceptConnection(){}
+        int n = JOptionPane.showOptionDialog(this, "User "+nick+"from IP "+ip+"wants to chat with you", "New connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
 
-    void DeclineConnection(){}
+        if (n == 0) {
+            try {
+                connection.accept();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        else
+            try {
+                connection.reject();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+    }
+
+
+    void ConnectionRefused(){
+        Object[] option = {"Retry", "Cancel"};
+
+        int n = JOptionPane.showOptionDialog(this, "No successful connection", "Connection Refused", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
+
+        if (n == 0) {
+            try {
+                connection.sendNickHello("2015",Main.LocalNick);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        else{
+            MyText.setEnabled(false);
+            SendButton.setEnabled(false);
+            MessageStory.setEnabled(false);
+            MessageStory.setText("");
+        }
+    }
+
+    void RejectConnection(String ip,String nick){
+        Object[] option = {"Retry", "Cancel"};
+
+        int n = JOptionPane.showOptionDialog(this, "User "+nick+"from IP "+ip+" canceled the connection", "Canceled connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
+
+        if (n == 0) {
+            try {
+                connection.sendNickHello("2015", Main.LocalNick);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        else{
+            MyText.setEnabled(false);
+            SendButton.setEnabled(false);
+            MessageStory.setEnabled(false);
+            MessageStory.setText("");
+        }
+    }
 
 
 
