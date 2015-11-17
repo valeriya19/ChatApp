@@ -4,6 +4,8 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import java.awt.event.*;
 import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.Vector;
 
 
@@ -17,13 +19,36 @@ public class ChatForm extends JFrame {
     private JTextField textFieldLocalNick;
     private JButton ButtonChangeLocalNick;
     private JTable tableFriends;
+    private JTextArea MessageStory;
+    private JButton SendButton;
+    private JTextField MyText;
     private JList FriendList;
 
     Vector<Vector<String>> friends=new Vector<Vector<String>>();
     Vector<String> header=new Vector<String>();
     DefaultTableModel model;
+
+
+    //РѕР±СЉСЏРІР»РµРЅРёСЏ РєР»Р°СЃСЃР° РґР»СЏ РІР·Р°РёРјРѕР¶РµР№СЃС‚РІРёСЏ СЃ РїСЂРѕС‚РѕРєРѕР»РѕРј
+    Connection connection=null;
+
+    //РћР±СЉСЏРІР»РµРЅРёРµ РєР»Р°СЃСЃРѕРІ-СЃР»СѓС€Р°С‚РµР»РµР№ РїСЂРѕС‚РѕРєРѕР»Р°
+    Caller caller=null;
+    CallerListener callerListener=null;
+    CommandListenerThread commandListenerServer=null;
+    CommandListenerThread commandListenerClient=null;
+
+    //СЃРѕСЃС‚РѕСЏРЅРёРµ РїСЂРѕРіСЂР°РјРјС‹
+    int status=-1;
+    /*Status value:
+    * -1 - not logined;
+    * 0 - free and ready to connect
+    * 1 - try to connect another user
+    * 2 - already connected to another  user*/
+
+
     public ChatForm() {
-        //Отображение формы
+        //пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
         super();
         setContentPane(rootPanel);
         setSize(700, 500);
@@ -34,11 +59,10 @@ public class ChatForm extends JFrame {
         textFieldNick.setEnabled(false);
         tableFriends.setEnabled(false);
         buttonAddFriends.setEnabled(false);
+        MyText.setEnabled(false);
+        SendButton.setEnabled(false);
 
-        //
-
-
-        //Чтение файла с друзьями
+        //пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         header.add("Nick");
         header.add("IP");
         friends.add(header);
@@ -61,19 +85,47 @@ public class ChatForm extends JFrame {
         model=new DefaultTableModel(friends,header);
         tableFriends.setModel(model);
         //
+        status=-1;
 
-
-        Connect.addActionListener(new ActionListener() { //событие - нажатие на кнопку connect
+        Connect.addActionListener(new ActionListener() { //пїЅпїЅпїЅпїЅпїЅпїЅпїЅ - пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ connect
             @Override
             public void actionPerformed(ActionEvent e) {
-                Main.form.setVisible(false);
-                Main.messageForm= new MessageForm(textFieldNick.getText(),textFieldIp.getText());
+                if (connection!=null)
+                    try {
+                        connection.sendNickHello("2015", Main.LocalNick);
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                else {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+
+                            caller = new Caller(Main.LocalNick, textFieldIp.getText());
+                            try {
+                                connection = caller.call();
+                            } catch (IOException e1) {
+                                e1.printStackTrace();
+                            }
+                            commandListenerClient = new CommandListenerThread(connection);
+
+                            try {
+                                connection.sendNickHello("2015", Main.LocalNick);
+                            } catch (IOException e1) {
+                                e1.printStackTrace();
+                            }
+                            commandListenerClient.start();
+                        }
+                    }).start();
+                }
 
             }
         });
 
         this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
+
+        //dialog when we want close program
         this.addWindowListener(new WindowListener() {
             @Override
             public void windowOpened(WindowEvent e) {
@@ -89,7 +141,7 @@ public class ChatForm extends JFrame {
                 if (n == 0) {
                     e.getWindow().setVisible(false);
 
-                    //сохранение списка друзей
+                    //пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
                     try (FileWriter fileWriter = new FileWriter("friendList.chat")) {
                         for (int i = 1; i < model.getRowCount(); i++) {
                             fileWriter.write(model.getValueAt(i, 0).toString() + "\n");
@@ -129,7 +181,7 @@ public class ChatForm extends JFrame {
             }
         });
 
-
+        //add user to friends list
         buttonAddFriends.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -140,7 +192,7 @@ public class ChatForm extends JFrame {
             }
         });
 
-        //обработка выделения ряда в таблице
+        //copy info from friends list to our textField
         ListSelectionModel listSelectionModel=tableFriends.getSelectionModel();//
         listSelectionModel.addListSelectionListener(new ListSelectionListener() {
             @Override
@@ -153,13 +205,12 @@ public class ChatForm extends JFrame {
                 }
             }
         });
-        //
 
-        //удаление ряда из таблицы
+        //deleting user from friends list
         tableFriends.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode()==127)//клавиша delete
+                if (e.getKeyCode()==127)//пїЅпїЅпїЅпїЅпїЅпїЅпїЅ delete
                     if (tableFriends.getSelectedRow()>0)
                     {
                         model.removeRow(tableFriends.getSelectedRow());
@@ -167,28 +218,48 @@ public class ChatForm extends JFrame {
                     }
             }
         });
-        //
 
-        //событие на нажатие кнопки изменения локального ника
+
+        //Change local nick adn activate next field
         ButtonChangeLocalNick.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (!textFieldLocalNick.getText().isEmpty()) {
                     Main.LocalNick = textFieldLocalNick.getText();
                     Connect.setEnabled(true);
-                    Disconnect.setEnabled(true);
                     textFieldIp.setEnabled(true);
                     textFieldNick.setEnabled(true);
                     tableFriends.setEnabled(true);
-                    buttonAddFriends.setEnabled(true);
 
                     textFieldLocalNick.setEnabled(false);
                     ButtonChangeLocalNick.setEnabled(false);
+
+                    status=0;
+                    Runnable runnable = new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+
+                                callerListener= new CallerListener();
+                                callerListener.setLocalNick(Main.LocalNick);
+                                commandListenerServer = new CommandListenerThread(callerListener.getConnection());
+
+                                commandListenerServer.start();
+
+                            } catch (IOException e1) {
+                                e1.printStackTrace();
+                            }
+
+                        }
+                    };
+                    new Thread(runnable).start();
+
                 }
 
             }
         });
 
+        //РћР±СЂР°Р±РѕС‚РєР° РєР»Р°РІРёС€Рё Enter РІ РїРѕР»Рµ РІРІРѕРґР° Р»РѕРєР°Р»СЊРЅРѕРіРѕ РЅРёРєР°
         textFieldLocalNick.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -197,7 +268,24 @@ public class ChatForm extends JFrame {
                 super.keyPressed(e);
             }
         });
+
+
+
+
     }
+
+    void NewMessage(String msgText){}
+
+    void NewConnection(String ip,String nick){}
+
+    void AcceptConnection(){}
+
+    void DeclineConnection(){}
+
+
+
+
+
 }
 
 
