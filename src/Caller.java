@@ -3,41 +3,77 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 
+/**
+ *
+ * @author katebudyanskaya
+ */
 public class Caller {
-	private String localNick;
+	private String localNick, remoteNick;
 	private SocketAddress remoteAddress;
-	private String ip;
-	private boolean status;
-	private Socket s;
-	private Connection call;
-	private final byte code=3;
+	private CallStatus status;
+	static enum CallStatus{OK, NOT_ACCESSIBLE, BUSY, REJECTED, NO_SERVICE};
 	 
 	public Caller(){
-		this.localNick = "unnamed"; 
-		this.remoteAddress = getRemoteAddress(); 
+		this("unnamed", new InetSocketAddress("127.0.0.1", 28411)); 
 	}
 
 	public Caller(String localNick){
-		this.localNick=localNick;
-		this.remoteAddress = getRemoteAddress(); 
+		this(localNick, new InetSocketAddress("127.0.0.1", 28411)); 
 	}
+	
 	public Caller(String localNick, SocketAddress remoteAddress){
 		this.localNick=localNick;
 		this.remoteAddress=remoteAddress;
 	}
 
-	public Caller(String localNick,String ip){
-		this.localNick=localNick;
-		this.ip=ip;
-		this.remoteAddress = getRemoteAddress();
+	public Caller(String localNick, String ip){
+		this(localNick, new InetSocketAddress(ip, 28411));
 	}
 	
 	public Connection call() throws IOException{
-		s = new Socket(ip, 28411);
-		status=s.isConnected();
-		if (status) {
-			return  call=new Connection(s);}
-		return null;
+		Socket s = new Socket();
+		s.connect(remoteAddress);
+		Connection oc = new Connection(s);
+		oc.sendNickHello("2015", localNick);
+		String tempMessage;
+		Command tempCommand;
+		if (oc.receive().getType() == Command.CommandType.NICK){
+		        remoteNick = oc.receiveMessage();
+			tempMessage = remoteNick.toUpperCase();
+			remoteNick = remoteNick.substring(tempMessage.indexOf(" USER ", 9));
+			if (remoteNick.isEmpty())
+				oc.close();
+			else{
+				int bp = remoteNick.indexOf(" busy");
+				if (bp > - 1) {
+				  remoteNick = remoteNick.substring(0, bp);
+				  status = CallStatus.BUSY;
+				  oc.close();
+				}
+				else{
+				  remoteNick = remoteNick.substring(0, remoteNick.length() - 1);
+				  oc.accept();
+				  tempCommand = oc.receive();
+				  if (tempCommand.getType() == Command.CommandType.REJECT){
+					  status = CallStatus.REJECTED;
+					  oc.disconnect();
+					  oc.close();
+				  }
+				  else{
+				    if (tempCommand.getType() == Command.CommandType.ACCEPT)
+				      status = CallStatus.OK;
+				    else{
+				      status = CallStatus.NO_SERVICE;
+				      oc.disconnect();
+				      oc.close();
+				    }
+				  } 
+				}
+			}
+		}
+		else
+		    oc.close();
+		return oc;
 	}
 	
 	public String getLocalNick(){
@@ -52,8 +88,8 @@ public class Caller {
 		return localNick;
 	}
 	
-	public Caller.CallStatus getStatus(){
-		return CallStatus.OK;
+	public CallStatus getStatus(){
+		return status;
 	}
 	
 	public void setLocalNick(String localNick){
@@ -63,18 +99,4 @@ public class Caller {
 	public void setRemoteAddress(SocketAddress remoteAddress){
 		this.remoteAddress = remoteAddress;
 	}
-	
-	/*protected Caller (byte callStatusIndex) {
-		code = callStatusIndex;
-	}*/
-
-	private static enum CallStatus{BUSY, NO_SERVICE, NOT_ACCESSIBLE, OK, REJECTED};
-	
-//	public static Caller getCall(String text) {
-//		for (CallStatus cs: CallStatus.values())
-//			if (text.equals(cs.name()))
-//				return new Caller((byte) cs.ordinal());
-//		return null;
-//	}
-	
 }

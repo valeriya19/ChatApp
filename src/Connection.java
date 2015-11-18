@@ -1,6 +1,5 @@
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.StringBuilder;
 import java.net.Socket;
 import java.util.Scanner;
 
@@ -10,12 +9,12 @@ import java.util.Scanner;
  */
 public class Connection {
 
-  private Socket connectionSocket;
-  private Scanner input;
-  private PrintWriter output;
+  private final Socket connectionSocket;
+  private final Scanner input;
+  private final PrintWriter output;
   
-  public Connection(Socket remoteConnection) throws IOException {
-    connectionSocket = remoteConnection;
+  public Connection(Socket s) throws IOException {
+    connectionSocket = s;
     input = new Scanner(this.connectionSocket.getInputStream(), "UTF-8");
     output = new PrintWriter(this.connectionSocket.getOutputStream(), true);
   }
@@ -29,24 +28,17 @@ public class Connection {
   }
   
   public Command receive() throws IOException {
-      return Command.getCommand(input.nextLine());//слушатель останавливается на этом моменте!!!!!!
+      return Command.getCommand(input.nextLine());
   }
   
   public void accept() throws IOException {
     output.write("ACCEPTED\n");
+    output.flush();
   }
   
   public void reject() throws IOException {
     output.write("REJECTED\n");
-  }
-
-  public String getNick() {
-    String hm = input.nextLine();
-    int p = hm.indexOf("user ");
-    if (p > -1)
-      return hm.substring(p + 5);
-    else
-      return null;
+    output.flush();
   }
 
   public String receiveMessage() {
@@ -58,28 +50,31 @@ public class Connection {
 
   public void sendNickHello(String version, String nickName) throws IOException {
     output.write("NICK\n");
+    output.flush();
     output.write("ChatApp " + version + " user " + nickName + "\n");
+    output.flush();
   }
 
   public void sendNickBusy(String version, String nickName) throws IOException {
+    output.write("NICK\n");
+    output.flush();
     output.write("ChatApp " + version + " user " + nickName + " busy" + "\n");
+    output.flush();
   }
   
   public void disconnect() throws IOException {
-    output.write("DISCONNECT");
-    connectionSocket.close();
+    output.write("DISCONNECT\n");
+    output.flush();
   }
   
-  public void close() {
-    connectionSocket = null;
+  public void close() throws IOException {
+    connectionSocket.close();
   }
   
   public void sendMessage(String message) throws IOException {
     output.write("MESSAGE\n");
+    output.flush();
     output.write(message + "\n");
-  }
-  
-  public static void main(String[] args) {
-    
+    output.flush();
   }
 }

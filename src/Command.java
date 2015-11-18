@@ -4,30 +4,29 @@
  */
 class Command {
   
-  private final byte code;
+  private final Command.CommandType type;
   static enum CommandType {NICK, DISCONNECT, ACCEPT, REJECT, MESSAGE};
   
-  protected Command(byte commandTypeIndex) {
-    code = commandTypeIndex;
+  protected Command(CommandType t) {
+    type = t;
   }
   
   public static Command getCommand(String text) {
-    System.out.println(text);
     String capital_text = text.toUpperCase();
-    if ((capital_text.indexOf("CHATAPP ", 0) > -1) && (text.indexOf(" USER ", 9) > 8) && (text.indexOf("\n", 16) > 15))
-      return new Command((byte) CommandType.NICK.ordinal());
+    if ((capital_text.indexOf("CHATAPP ", 0) == 0) && (capital_text.indexOf(" USER ", 8) > 8) && (capital_text.lastIndexOf("\n") == text.length() - 1))
+      return new Command(CommandType.NICK);
     if (capital_text.equals("DISCONNECT\n"))
-      return new Command((byte) CommandType.DISCONNECT.ordinal());
+      return new Command(CommandType.DISCONNECT);
     if (capital_text.equals("ACCEPTED\n"))
-      return new Command((byte) CommandType.ACCEPT.ordinal());
+      return new Command(CommandType.ACCEPT);
     if (capital_text.equals("REJECTED\n"))
-      return new Command((byte) CommandType.REJECT.ordinal());
+      return new Command(CommandType.REJECT);
     if (capital_text.equals("MESSAGE\n"))
-      return new Command((byte) CommandType.MESSAGE.ordinal());
+      return new Command(CommandType.MESSAGE);
     return null;
   }
   
   public CommandType getType() {
-    return CommandType.values()[code];
+    return type;
   }
 }

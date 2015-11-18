@@ -1,31 +1,65 @@
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.SocketAddress;
 
+/**
+ *
+ * @author katebudyanskaya
+ */
 class CallListener {
-        private String remoteNick;
-        private String localNick;
+        private String remoteNick, localNick;
         private ServerSocket ss;
-        private String localIp;
         private boolean busy;
-        private SocketAddress ListenerAddress, remoteAddress;
-        private Connection ic;
+        private SocketAddress listenAddress, remoteAddress;
 
-        public CallListener(){
-                localNick = "unnamed";
-                localIp = "127.0.0.1";
-                try {
+        public CallListener() throws IOException{
+                this("unnamed", null);
+        }
+	
+	public CallListener(String localNick) throws IOException {
+		this(localNick, null);
+	}
+	
+	public CallListener(String localNick, String localIP) throws IOException {
+		try {
                         ss = new ServerSocket(28411);
                 } catch (IOException e) {
                         e.printStackTrace();
                 }
-        }
+		if (localIP != null)
+		  ss.bind(new InetSocketAddress(localIP, 28411));
+		this.localNick = localNick;
+		this.listenAddress = ss.getLocalSocketAddress();
+	}
 
         public Connection getConnection() throws IOException{
-                ic = new Connection(ss.accept());
-                System.out.println("Client Connected");
-                ic.sendNickHello("2015","Client");
-                
+                Connection ic = new Connection(ss.accept());
+		String tempMessage;
+		if (ic.receive().getType() == Command.CommandType.NICK){
+                        remoteNick = ic.receiveMessage();
+			tempMessage = remoteNick.toUpperCase();
+			remoteNick = remoteNick.substring(tempMessage.indexOf(" USER ", 9));
+                        if (remoteNick.isEmpty()){
+                                ic.close();
+                        }
+                        else{
+                                if (busy){
+                                        ic.sendNickBusy("2015", localNick);
+					ic.disconnect();
+                                        ic.close();
+                                }
+				else{
+                                        ic.sendNickHello("2015", localNick);
+					if (ic.receive().getType() != Command.CommandType.ACCEPT){
+					  ic.disconnect();
+					  ic.close();
+					}
+				}
+                        }
+                }
+		else
+		  ic.close();
                 return ic;
         }
 
@@ -34,11 +68,11 @@ class CallListener {
         }
 
         public boolean isBusy() {
-                return false;
+                return busy;
         }
 
         public SocketAddress getListenAddress(){
-                return ListenerAddress;
+                return listenAddress;
         }
 
 
@@ -56,11 +90,10 @@ class CallListener {
         }
 
         public void setBusy(boolean busy){
-                this.busy=busy;
+                this.busy = busy;
         }
 
         public void setListenAddress(SocketAddress listenAddress){
-                this.ListenerAddress = listenAddress;
+                this.listenAddress = listenAddress;
         }
-
 }
