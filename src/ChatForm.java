@@ -4,47 +4,45 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import java.awt.event.*;
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.Vector;
 
 
 public class ChatForm extends JFrame {
     private JPanel rootPanel;
-    private JButton Connect;
-    private JButton Disconnect;
+    private JButton connect;
+    private JButton disconnect;
     private JTextField textFieldIp;
     private JTextField textFieldNick;
     private JButton buttonAddFriends;
     private JTextField textFieldLocalNick;
-    private JButton ButtonChangeLocalNick;
+    private JButton buttonChangeLocalNick;
     private JTable tableFriends;
-    private JTextArea MessageStory;
-    private JButton SendButton;
-    private JTextField MyText;
-    private JList FriendList;
+    private JTextArea messageStory;
+    private JButton sendButton;
+    private JTextField myText;
+    private JList friendList;
 
     Vector<Vector<String>> friends=new Vector<Vector<String>>();
     Vector<String> header=new Vector<String>();
     DefaultTableModel model;
 
 
-    //РѕР±СЉСЏРІР»РµРЅРёСЏ РєР»Р°СЃСЃР° РґР»СЏ РІР·Р°РёРјРѕР¶РµР№СЃС‚РІРёСЏ СЃ РїСЂРѕС‚РѕРєРѕР»РѕРј
+    //РѕР±СЉСЏРІР»РµРЅРёСЏ РєР»Р°СЃСЃР° РґР»СЏ РІР·Р°РёРјРѕРґРµР№СЃС‚РІРёСЏ СЃ РїСЂРѕС‚РѕРєРѕР»РѕРј
     Connection connection=null;
 
     //РћР±СЉСЏРІР»РµРЅРёРµ РєР»Р°СЃСЃРѕРІ-СЃР»СѓС€Р°С‚РµР»РµР№ РїСЂРѕС‚РѕРєРѕР»Р°
     Caller caller=null;
-    CallerListener callerListener=null;
+    CallListener callListener=null;
     CommandListenerThread commandListenerServer=null;
     CommandListenerThread commandListenerClient=null;
 
     //СЃРѕСЃС‚РѕСЏРЅРёРµ РїСЂРѕРіСЂР°РјРјС‹
     int status=-1;
     /*Status value:
-    * -1 - not logined;
-    * 0 - free and ready to connect
-    * 1 - try to connect another user
-    * 2 - already connected to another  user*/
+    * -1 - not logged in;
+    * 0 - free and ready to connect;
+    * 1 - try to connect another user;
+    * 2 - already connected to another user*/
 
 
     public ChatForm() {
@@ -53,14 +51,14 @@ public class ChatForm extends JFrame {
         setContentPane(rootPanel);
         setSize(700, 500);
 
-        Connect.setEnabled(false);
-        Disconnect.setEnabled(false);
+        connect.setEnabled(false);
+        disconnect.setEnabled(false);
         textFieldIp.setEnabled(false);
         textFieldNick.setEnabled(false);
         tableFriends.setEnabled(false);
         buttonAddFriends.setEnabled(false);
-        MyText.setEnabled(false);
-        SendButton.setEnabled(false);
+        myText.setEnabled(false);
+        sendButton.setEnabled(false);
 
         //пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         header.add("Nick");
@@ -84,10 +82,9 @@ public class ChatForm extends JFrame {
         }
         model=new DefaultTableModel(friends,header);
         tableFriends.setModel(model);
-        //
         status=-1;
 
-        Connect.addActionListener(new ActionListener() { //при нахатии на connect создаес поток и подключение к серверу
+        connect.addActionListener(new ActionListener() { //пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ connect пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (connection!=null)
@@ -110,7 +107,7 @@ public class ChatForm extends JFrame {
                             commandListenerClient = new CommandListenerThread(connection);
 
                             try {
-                                connection.sendNickHello("2015", Main.LocalNick);//отпраляется при подключение ник
+                                connection.sendNickHello("2015", Main.LocalNick);//пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ
                             } catch (IOException e1) {
                                 e1.printStackTrace();
                             }
@@ -118,14 +115,12 @@ public class ChatForm extends JFrame {
                         }
                     }).start();
                 }
-
             }
         });
 
         this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
-
-        //dialog when we want close program
+        //dialog when we want to close the program
         this.addWindowListener(new WindowListener() {
             @Override
             public void windowOpened(WindowEvent e) {
@@ -150,7 +145,6 @@ public class ChatForm extends JFrame {
                     } catch (IOException e1) {
                         e1.printStackTrace();
                     }
-
                     System.exit(0);
                 }
             }
@@ -181,7 +175,7 @@ public class ChatForm extends JFrame {
             }
         });
 
-        //add user to friends list
+        //add user to friend list
         buttonAddFriends.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -192,8 +186,8 @@ public class ChatForm extends JFrame {
             }
         });
 
-        //copy info from friends list to our textField
-        ListSelectionModel listSelectionModel=tableFriends.getSelectionModel();//
+        //copy info from friend list to our textField
+        ListSelectionModel listSelectionModel=tableFriends.getSelectionModel();
         listSelectionModel.addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(ListSelectionEvent e) {
@@ -206,7 +200,7 @@ public class ChatForm extends JFrame {
             }
         });
 
-        //deleting user from friends list
+        //deleting user from friend list
         tableFriends.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -219,43 +213,36 @@ public class ChatForm extends JFrame {
             }
         });
 
-
-        //Change local nick adn activate next field
-        ButtonChangeLocalNick.addActionListener(new ActionListener() {
+        //Change local nick and activate next field
+        buttonChangeLocalNick.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (!textFieldLocalNick.getText().isEmpty()) {
                     Main.LocalNick = textFieldLocalNick.getText();
-                    Connect.setEnabled(true);
+                    connect.setEnabled(true);
                     textFieldIp.setEnabled(true);
                     textFieldNick.setEnabled(true);
                     tableFriends.setEnabled(true);
 
                     textFieldLocalNick.setEnabled(false);
-                    ButtonChangeLocalNick.setEnabled(false);
+                    buttonChangeLocalNick.setEnabled(false);
 
-                    status=0;//при нжатии на эплай создается поток в котором запускается слушатель для сервера
+                    status=0;//пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
                     Runnable runnable = new Runnable() {
                         @Override
                         public void run() {
                             try {
-
-                                callerListener= new CallerListener();
-                                callerListener.setLocalNick(Main.LocalNick);//запускаем сам сервер передаем ник
-                                commandListenerServer = new CommandListenerThread(callerListener.getConnection());//реестрируем открытое соеденение классу который умеет слушать открытое соединение
-
+                                callListener= new CallListener();
+                                callListener.setLocalNick(Main.LocalNick);//пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ
+                                commandListenerServer = new CommandListenerThread(callListener.getConnection());//пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
                                 commandListenerServer.start();
-
                             } catch (IOException e1) {
                                 e1.printStackTrace();
                             }
-
                         }
                     };
                     new Thread(runnable).start();
-
-                }
-
+		}
             }
         });
 
@@ -264,14 +251,10 @@ public class ChatForm extends JFrame {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyChar()=='\n')
-                    ButtonChangeLocalNick.doClick();
+                    buttonChangeLocalNick.doClick();
                 super.keyPressed(e);
             }
         });
-
-
-
-
     }
 
     void NewMessage(String msgText){}
@@ -310,10 +293,10 @@ public class ChatForm extends JFrame {
             }
         }
         else{
-            MyText.setEnabled(false);
-            SendButton.setEnabled(false);
-            MessageStory.setEnabled(false);
-            MessageStory.setText("");
+            myText.setEnabled(false);
+            sendButton.setEnabled(false);
+            messageStory.setEnabled(false);
+            messageStory.setText("");
         }
     }
 
@@ -330,18 +313,10 @@ public class ChatForm extends JFrame {
             }
         }
         else{
-            MyText.setEnabled(false);
-            SendButton.setEnabled(false);
-            MessageStory.setEnabled(false);
-            MessageStory.setText("");
+            myText.setEnabled(false);
+            sendButton.setEnabled(false);
+            messageStory.setEnabled(false);
+            messageStory.setText("");
         }
     }
-
-
-
-
-
 }
-
-
-
