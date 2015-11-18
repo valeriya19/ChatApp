@@ -3,10 +3,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 
-/**
- *
- * @author katebudyanskaya
- */
 public class Caller {
 	private String localNick;
 	private SocketAddress remoteAddress;
@@ -36,15 +32,12 @@ public class Caller {
 		this.remoteAddress = getRemoteAddress();
 	}
 	
-	//������������� ��������� ����������. ���������� ��������� ������ ����� ���������� ������������� (��� ���������������) ������. ��������� ��������� ������ �������� � ���� status.
-	
 	public Connection call() throws IOException{
 		s = new Socket(ip, 28411);
 		status=s.isConnected();
 		if (status) {
 			return  call=new Connection(s);}
 		return null;
-		//
 	}
 	
 	public String getLocalNick(){
@@ -68,7 +61,7 @@ public class Caller {
 	}
 	
 	public void setRemoteAddress(SocketAddress remoteAddress){
-		this.localNick = localNick;
+		this.remoteAddress = remoteAddress;
 	}
 	
 	/*protected Caller (byte callStatusIndex) {

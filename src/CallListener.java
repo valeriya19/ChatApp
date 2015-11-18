@@ -1,7 +1,8 @@
-import java.net.*;
-import java.io.*;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.SocketAddress;
 
-class CallerListener {
+class CallListener {
         private String remoteNick;
         private String localNick;
         private ServerSocket ss;
@@ -10,7 +11,7 @@ class CallerListener {
         private SocketAddress ListenerAddress, remoteAddress;
         private Connection ic;
 
-        public CallerListener(){
+        public CallListener(){
                 localNick = "unnamed";
                 localIp = "127.0.0.1";
                 try {
@@ -24,25 +25,9 @@ class CallerListener {
                 ic = new Connection(ss.accept());
                 System.out.println("Client Connected");
                 ic.sendNickHello("2015","Client");
-                /*if (ic.receive().getType() == Command.CommandType.NICK) {
-                        remoteNick = ic.getNick();
-                        if (localNick == null) {
-                                ic.disconnect();
-                                ic = null;
-                        }
-                        else {
-                                if (busy) {
-                                        ic.sendNickBusy("2015", localNick);
-                                        ic = null;
-                                }
-                                else
-                                        ic.sendNickHello("2015", localNick);
-                        }
-                }*/
+                
                 return ic;
         }
-
-        // Ждать входящего соединения. В состоянии "busy" обрывает соединение и возвращает null, но информацию о звонящем можно узнать
 
         public String getLocalNick() {
                 return localNick;
