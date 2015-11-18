@@ -44,8 +44,4 @@ class CommandListenerThread extends Observable implements Runnable {
             }
         } while (!stopped);
     }
-
-    public static void main(String[] args) {
-
-    }
 }
