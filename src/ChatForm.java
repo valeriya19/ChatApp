@@ -9,17 +9,10 @@ import java.util.Vector;
 
 public class ChatForm extends JFrame {
     private JPanel rootPanel;
-    private JButton connect;
-    private JButton disconnect;
-    private JTextField textFieldIp;
-    private JTextField textFieldNick;
-    private JButton buttonAddFriends;
-    private JTextField textFieldLocalNick;
-    private JButton buttonChangeLocalNick;
+    private JButton connect, disconnect, buttonAddFriends, buttonChangeLocalNick, sendButton;
+    private JTextField textFieldIp, textFieldNick, textFieldLocalNick, myText;
     private JTable tableFriends;
     private JTextArea messageStory;
-    private JButton sendButton;
-    private JTextField myText;
     private JList friendList;
 
     Vector<Vector<String>> friends=new Vector<Vector<String>>();
@@ -115,7 +108,7 @@ public class ChatForm extends JFrame {
 
         this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
-        //dialog when we want close program
+        //dialog when we want to close the program
         this.addWindowListener(new WindowListener() {
             @Override
             public void windowOpened(WindowEvent e) {
