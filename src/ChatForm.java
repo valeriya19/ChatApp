@@ -26,7 +26,6 @@ public class ChatForm extends JFrame {
     Vector<String> header=new Vector<String>();
     DefaultTableModel model;
 
-
     //объявления класса для взаимодействия с протоколом
     Connection connection=null;
 
@@ -42,8 +41,7 @@ public class ChatForm extends JFrame {
     * -1 - not logged in;
     * 0 - free and ready to connect;
     * 1 - try to connect another user;
-    * 2 - already connected to another user*/
-
+    * 2 - already connected to another  user*/
 
     public ChatForm() {
         //����������� �����
@@ -64,10 +62,9 @@ public class ChatForm extends JFrame {
         header.add("Nick");
         header.add("IP");
         friends.add(header);
-        try
-        {
+        try {
             BufferedReader bufferedReader = new BufferedReader(new FileReader("friendList.chat"));
-            while (bufferedReader.ready()){
+            while (bufferedReader.ready()) {
                 Vector<String> tmp=new Vector<String>();
                 String nick=bufferedReader.readLine();
                 String ip=bufferedReader.readLine();
@@ -97,7 +94,6 @@ public class ChatForm extends JFrame {
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
-
                             caller = new Caller(Main.LocalNick, textFieldIp.getText());
                             try {
                                 connection = caller.call();
@@ -105,7 +101,6 @@ public class ChatForm extends JFrame {
                                 e1.printStackTrace();
                             }
                             commandListenerClient = new CommandListenerThread(connection);
-
                             try {
                                 connection.sendNickHello("2015", Main.LocalNick);//����������� ��� ����������� ���
                             } catch (IOException e1) {
@@ -120,7 +115,7 @@ public class ChatForm extends JFrame {
 
         this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
-        //dialog when we want to close the program
+        //dialog when we want close program
         this.addWindowListener(new WindowListener() {
             @Override
             public void windowOpened(WindowEvent e) {
@@ -205,8 +200,7 @@ public class ChatForm extends JFrame {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode()==127)//������� delete
-                    if (tableFriends.getSelectedRow()>0)
-                    {
+                    if (tableFriends.getSelectedRow()>0) {
                         model.removeRow(tableFriends.getSelectedRow());
                         tableFriends.clearSelection();
                     }
@@ -235,6 +229,7 @@ public class ChatForm extends JFrame {
                                 callListener= new CallListener();
                                 callListener.setLocalNick(Main.LocalNick);//��������� ��� ������ �������� ���
                                 commandListenerServer = new CommandListenerThread(callListener.getConnection());//����������� �������� ���������� ������ ������� ����� ������� �������� ����������
+
                                 commandListenerServer.start();
                             } catch (IOException e1) {
                                 e1.printStackTrace();
@@ -242,7 +237,7 @@ public class ChatForm extends JFrame {
                         }
                     };
                     new Thread(runnable).start();
-		}
+                }
             }
         });
 
@@ -279,7 +274,6 @@ public class ChatForm extends JFrame {
             }
     }
 
-
     void ConnectionRefused(){
         Object[] option = {"Retry", "Cancel"};
 
@@ -292,7 +286,7 @@ public class ChatForm extends JFrame {
                 e.printStackTrace();
             }
         }
-        else{
+	else {
             myText.setEnabled(false);
             sendButton.setEnabled(false);
             messageStory.setEnabled(false);
