@@ -6,12 +6,14 @@ import java.util.Observable;
  */
 class CommandListenerThread extends Observable implements Runnable {
 
-    Command lastCommand;
-    Connection connection;
-    boolean stopped;
+    private Command lastCommand;
+    private final Connection connection;
+    private boolean stopped;
+    private final Thread thisThread;
 
     public CommandListenerThread(Connection con) {
         connection = con;
+	thisThread = new Thread(this);
     }
 
     public Command getLastCommand() {
@@ -23,7 +25,7 @@ class CommandListenerThread extends Observable implements Runnable {
     }
 
     public void start() {
-        run();
+        thisThread.start();
     }
 
     public void stop() {
@@ -34,9 +36,9 @@ class CommandListenerThread extends Observable implements Runnable {
         do {
             try {
                 Command checked = connection.receive();
-                System.out.println(connection);
                 if (checked != null) {
                     lastCommand = checked;
+		    setChanged();
                     notifyObservers();
                 }
             } catch (IOException ex) {

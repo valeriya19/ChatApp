@@ -22,11 +22,7 @@ class CallListener {
 	}
 	
 	public CallListener(String localNick, String localIP) throws IOException {
-		try {
-                        ss = new ServerSocket(28411);
-                } catch (IOException e) {
-                        e.printStackTrace();
-                }
+                ss = new ServerSocket(28411);
 		if (localIP != null)
 		  ss.bind(new InetSocketAddress(localIP, 28411));
 		this.localNick = localNick;
@@ -34,7 +30,7 @@ class CallListener {
 	}
 
         public Connection getConnection() throws IOException{
-                Connection ic = new Connection(ss.accept());
+		/*
 		String tempMessage;
 		if (ic.receive().getType() == Command.CommandType.NICK){
                         remoteNick = ic.receiveMessage();
@@ -51,16 +47,14 @@ class CallListener {
                                 }
 				else{
                                         ic.sendNickHello("2015", localNick);
-					if (ic.receive().getType() != Command.CommandType.ACCEPT){
-					  ic.disconnect();
-					  ic.close();
-					}
+					busy = true;
 				}
                         }
                 }
 		else
 		  ic.close();
-                return ic;
+		*/
+                return new Connection(ss.accept());
         }
 
         public String getLocalNick() {

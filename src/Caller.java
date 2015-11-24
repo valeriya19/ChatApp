@@ -32,8 +32,9 @@ public class Caller {
 	
 	public Connection call() throws IOException{
 		Socket s = new Socket();
+		s.bind(new InetSocketAddress(s.getLocalAddress(), 28411));
 		s.connect(remoteAddress);
-		Connection oc = new Connection(s);
+		/*
 		oc.sendNickHello("2015", localNick);
 		String tempMessage;
 		Command tempCommand;
@@ -73,7 +74,8 @@ public class Caller {
 		}
 		else
 		    oc.close();
-		return oc;
+		*/
+		return new Connection(s);
 	}
 	
 	public String getLocalNick(){

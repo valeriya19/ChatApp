@@ -13,15 +13,15 @@ class Command {
   
   public static Command getCommand(String text) {
     String capital_text = text.toUpperCase();
-    if ((capital_text.indexOf("CHATAPP ", 0) == 0) && (capital_text.indexOf(" USER ", 8) > 8) && (capital_text.lastIndexOf("\n") == text.length() - 1))
+    if ((capital_text.indexOf("CHATAPP ", 0) == 0) && (capital_text.indexOf(" USER ", 8) > 8))
       return new Command(CommandType.NICK);
-    if (capital_text.equals("DISCONNECT\n"))
+    if (capital_text.equals("DISCONNECT"))
       return new Command(CommandType.DISCONNECT);
-    if (capital_text.equals("ACCEPTED\n"))
+    if (capital_text.equals("ACCEPTED"))
       return new Command(CommandType.ACCEPT);
-    if (capital_text.equals("REJECTED\n"))
+    if (capital_text.equals("REJECTED"))
       return new Command(CommandType.REJECT);
-    if (capital_text.equals("MESSAGE\n"))
+    if (capital_text.equals("MESSAGE"))
       return new Command(CommandType.MESSAGE);
     return null;
   }
