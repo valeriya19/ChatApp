@@ -6,7 +6,6 @@ import java.util.Observable;
  * @author katebudyanskaya
  */
 class CallListenerThread extends Observable implements Runnable{
-  
     private Connection lastConnection;
     private final CallListener cl;
     private boolean sleep;
@@ -38,5 +37,9 @@ class CallListenerThread extends Observable implements Runnable{
                 sleep = true;
             }
         } while (!sleep);
+    }
+    
+    public Connection getLastConnection() {
+      return lastConnection;
     }
 }

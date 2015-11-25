@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Scanner;
@@ -15,12 +16,12 @@ public class Connection {
   
   public Connection(Socket s) throws IOException {
     connectionSocket = s;
-    input = new Scanner(this.connectionSocket.getInputStream(), "UTF-8");
-    output = new PrintWriter(this.connectionSocket.getOutputStream(), true);
+    input = new Scanner(this.connectionSocket.getInputStream(), Protocol.encoding);
+    output = new PrintWriter(new OutputStreamWriter(this.connectionSocket.getOutputStream(), Protocol.encoding), true);
   }
   
   public boolean isOpen() {
-    return connectionSocket != null;
+    return !connectionSocket.isClosed();
   }
   
   public boolean isConnected() {
@@ -28,42 +29,36 @@ public class Connection {
   }
   
   public Command receive() throws IOException {
-      return Command.getCommand(input.nextLine());
+    StringBuilder it = new StringBuilder(Protocol.encoding);
+    do {
+      it.append(input.nextLine());
+      it.append(Protocol.endOfLine);
+    } while (input.hasNextLine());
+    return Command.getCommand(it.toString());
   }
   
   public void accept() throws IOException {
-    output.write("ACCEPTED\n");
+    output.write("ACCEPTED" + Protocol.endOfLine);
     output.flush();
   }
   
   public void reject() throws IOException {
-    output.write("REJECTED\n");
+    output.write("REJECTED" + Protocol.endOfLine);
     output.flush();
   }
 
-  public String receiveMessage() {
-    StringBuilder m = new StringBuilder();
-    while (input.hasNextLine())
-      m.append(input.nextLine());
-    return m.toString();
-  }
-
-  public void sendNickHello(String version, String nickName) throws IOException {
-    output.write("NICK\n");
-    output.flush();
-    output.write("ChatApp " + version + " user " + nickName + "\n");
+  public void sendNickHello(String nickName) throws IOException {
+    output.write(Protocol.programName + " " + Protocol.version + " user " + nickName + Protocol.endOfLine);
     output.flush();
   }
-
-  public void sendNickBusy(String version, String nickName) throws IOException {
-    output.write("NICK\n");
-    output.flush();
-    output.write("ChatApp " + version + " user " + nickName + " busy" + "\n");
+  
+  public void sendNickBusy(String nickName) throws IOException {
+    output.write(Protocol.programName + " " + Protocol.version + " user " + nickName + " busy" + Protocol.endOfLine);
     output.flush();
   }
   
   public void disconnect() throws IOException {
-    output.write("DISCONNECT\n");
+    output.write("DISCONNECT" + Protocol.endOfLine);
     output.flush();
   }
   
@@ -72,9 +67,8 @@ public class Connection {
   }
   
   public void sendMessage(String message) throws IOException {
-    output.write("MESSAGE\n");
-    output.flush();
-    output.write(message + "\n");
+    output.write("MESSAGE" + Protocol.endOfLine);
+    output.write(message + Protocol.endOfLine);
     output.flush();
   }
 }

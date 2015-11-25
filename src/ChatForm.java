@@ -6,8 +6,11 @@ import java.awt.event.*;
 import java.io.*;
 import java.util.Vector;
 
-
-public class ChatForm extends JFrame {
+/**
+ *
+ * @author valeriya19
+ */
+class ChatForm extends JFrame {
     private JPanel rootPanel;
     private JButton connect, disconnect, buttonAddFriends, buttonChangeLocalNick, sendButton;
     private JTextField textFieldIp, textFieldNick, textFieldLocalNick, myText;
@@ -79,7 +82,7 @@ public class ChatForm extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 if (connection!=null)
                     try {
-                        connection.sendNickHello("2015", Main.LocalNick);
+                        connection.sendNickHello(Application.localNick);
                     } catch (IOException e1) {
                         e1.printStackTrace();
                     }
@@ -87,7 +90,7 @@ public class ChatForm extends JFrame {
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            caller = new Caller(Main.LocalNick, textFieldIp.getText());
+                            caller = new Caller(Application.localNick, textFieldIp.getText());
                             try {
                                 connection = caller.call();
                             } catch (IOException e1) {
@@ -95,7 +98,7 @@ public class ChatForm extends JFrame {
                             }
                             commandListenerClient = new CommandListenerThread(connection);
                             try {
-                                connection.sendNickHello("2015", Main.LocalNick);//����������� ��� ����������� ���
+                                connection.sendNickHello(Application.localNick);//����������� ��� ����������� ���
                             } catch (IOException e1) {
                                 e1.printStackTrace();
                             }
@@ -205,7 +208,7 @@ public class ChatForm extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (!textFieldLocalNick.getText().isEmpty()) {
-                    Main.LocalNick = textFieldLocalNick.getText();
+                    Application.localNick = textFieldLocalNick.getText();
                     connect.setEnabled(true);
                     textFieldIp.setEnabled(true);
                     textFieldNick.setEnabled(true);
@@ -220,7 +223,7 @@ public class ChatForm extends JFrame {
                         public void run() {
                             try {
                                 callListener= new CallListener();
-                                callListener.setLocalNick(Main.LocalNick);//��������� ��� ������ �������� ���
+                                callListener.setLocalNick(Application.localNick);//��������� ��� ������ �������� ���
                                 commandListenerServer = new CommandListenerThread(callListener.getConnection());//����������� �������� ���������� ������ ������� ����� ������� �������� ����������
 
                                 commandListenerServer.start();
@@ -274,7 +277,7 @@ public class ChatForm extends JFrame {
 
         if (n == 0) {
             try {
-                connection.sendNickHello("2015",Main.LocalNick);
+                connection.sendNickHello(Application.localNick);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -294,7 +297,7 @@ public class ChatForm extends JFrame {
 
         if (n == 0) {
             try {
-                connection.sendNickHello("2015", Main.LocalNick);
+                connection.sendNickHello(Application.localNick);
             } catch (IOException e) {
                 e.printStackTrace();
             }
