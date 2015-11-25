@@ -17,6 +17,8 @@ class ChatForm extends JFrame {
     private JTable tableFriends;
     private JTextArea messageStory;
     private JList friendList;
+    
+    public static String version = "2015", localNick;
 
     Vector<Vector<String>> friends=new Vector<Vector<String>>();
     Vector<String> header=new Vector<String>();
@@ -32,12 +34,9 @@ class ChatForm extends JFrame {
     CommandListenerThread commandListenerClient=null;
 
     //состояние программы
-    int status=-1;
-    /*Status value:
-    * -1 - not logged in;
-    * 0 - free and ready to connect;
-    * 1 - try to connect another user;
-    * 2 - already connected to another  user*/
+    private static enum Status {BUSY, SERVER_NOT_STARTED, OK,CLIENT_CONNECTED,REQUEST_FOR_CONNECT};
+
+    public Status status;
 
     public ChatForm() {
         //����������� �����
@@ -75,36 +74,26 @@ class ChatForm extends JFrame {
         }
         model=new DefaultTableModel(friends,header);
         tableFriends.setModel(model);
-        status=-1;
 
         connect.addActionListener(new ActionListener() { //��� ������� �� connect ������� ����� � ����������� � �������
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (connection!=null)
-                    try {
-                        connection.sendNickHello(Application.localNick);
-                    } catch (IOException e1) {
-                        e1.printStackTrace();
-                    }
-                else {
-                    new Thread(new Runnable() {
+                if (caller==null){
+
+                     new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            caller = new Caller(Application.localNick, textFieldIp.getText());
+                            caller = new Caller(localNick, textFieldIp.getText());
                             try {
-                                connection = caller.call();
+                                commandListenerClient = new CommandListenerThread(caller.call());
                             } catch (IOException e1) {
                                 e1.printStackTrace();
                             }
-                            commandListenerClient = new CommandListenerThread(connection);
-                            try {
-                                connection.sendNickHello(Application.localNick);//����������� ��� ����������� ���
-                            } catch (IOException e1) {
-                                e1.printStackTrace();
-                            }
+                            commandListenerClient.addObserver(new ListenerConnection());
                             commandListenerClient.start();
                         }
                     }).start();
+                    status=Status.REQUEST_FOR_CONNECT;
                 }
             }
         });
@@ -122,7 +111,7 @@ class ChatForm extends JFrame {
             public void windowClosing(WindowEvent e) {
                 Object[] option = {"Yes", "No"};
 
-                int n = JOptionPane.showOptionDialog(e.getComponent(),"Are you really want to exit?","Close window?",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE,null,option,option[1]);
+                int n = JOptionPane.showOptionDialog(e.getComponent(), "Are you really want to exit?", "Close window?", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
 
                 if (n == 0) {
                     e.getWindow().setVisible(false);
@@ -208,7 +197,7 @@ class ChatForm extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (!textFieldLocalNick.getText().isEmpty()) {
-                    Application.localNick = textFieldLocalNick.getText();
+                    localNick = textFieldLocalNick.getText();
                     connect.setEnabled(true);
                     textFieldIp.setEnabled(true);
                     textFieldNick.setEnabled(true);
@@ -217,22 +206,26 @@ class ChatForm extends JFrame {
                     textFieldLocalNick.setEnabled(false);
                     buttonChangeLocalNick.setEnabled(false);
 
-                    status=0;//��� ������ �� ����� ��������� ����� � ������� ����������� ��������� ��� �������
+                    status = Status.SERVER_NOT_STARTED;//��� ������ �� ����� ��������� ����� � ������� ����������� ��������� ��� �������
                     Runnable runnable = new Runnable() {
                         @Override
                         public void run() {
                             try {
                                 callListener= new CallListener();
-                                callListener.setLocalNick(Application.localNick);//��������� ��� ������ �������� ���
-                                commandListenerServer = new CommandListenerThread(callListener.getConnection());//����������� �������� ���������� ������ ������� ����� ������� �������� ����������
-
-                                commandListenerServer.start();
+                                callListener.setLocalNick(localNick);//��������� ��� ������ �������� ���
+                                Connection connection = callListener.getConnection();
+				connection.sendNickHello(version, localNick);
+				
+				commandListenerServer = new CommandListenerThread(callListener.getConnection());//����������� �������� ���������� ������ ������� ����� ������� �������� ����������
+				commandListenerServer.addObserver(new ListenerConnection());
+                                commandListenerServer.start();	
                             } catch (IOException e1) {
                                 e1.printStackTrace();
                             }
                         }
                     };
                     new Thread(runnable).start();
+		    status=Status.OK;
                 }
             }
         });
@@ -246,38 +239,75 @@ class ChatForm extends JFrame {
                 super.keyPressed(e);
             }
         });
-    }
-
-    void NewMessage(String msgText){}
-
-    void NewConnection(String ip,String nick) {
-        Object[] option = {"Connect", "Disconnect"};
-
-        int n = JOptionPane.showOptionDialog(this, "User "+nick+"from IP "+ip+"wants to chat with you", "New connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
-
-        if (n == 0) {
-            try {
-                connection.accept();
-            } catch (IOException e) {
-                e.printStackTrace();
+    
+        myText.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                if (e.getKeyChar()=='\n')
+                    sendButton.doClick();
+                else
+                    super.keyTyped(e);
             }
+        });
+    }
+    
+    void newMessage(Connection con,String msgText) {
+        if (msgText!=null){
+            messageStory.setText(messageStory.getText()+"↓"+textFieldNick.getText()+": "+msgText+"\n");
+            myText.setText("");
         }
-        else
+    }
+
+    void newConnection(Connection con,String ip, String nick) {
+        if (status==Status.OK){
+            Object[] option = {"Connect", "Disconnect"};
+            int n = JOptionPane.showOptionDialog(this, "User " + nick + " from IP " + ip + " wants to chat with you", "New connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
+            if (n == 0) {
+                try {
+                    con.accept();
+                    status=Status.BUSY;
+                    textFieldNick.setEnabled(false);
+                    textFieldNick.setText(nick);
+                    textFieldIp.setText(ip);
+                    textFieldIp.setEnabled(false);
+                    acceptConnection(con);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else
+                try {
+                    con.reject();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+        }
+        else if (status==Status.REQUEST_FOR_CONNECT){
+            status=Status.BUSY;
+            textFieldNick.setEnabled(false);
+            textFieldNick.setText(nick);
+            textFieldIp.setText(ip);
+            textFieldIp.setEnabled(false);
             try {
-                connection.reject();
+                con.sendNickHello(version,localNick);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }else if (status==Status.BUSY)
+            try {
+                con.sendNickBusy(version,localNick);
             } catch (IOException e) {
                 e.printStackTrace();
             }
     }
 
-    void ConnectionRefused(){
+    void connectionRefused(Connection con){
         Object[] option = {"Retry", "Cancel"};
 
         int n = JOptionPane.showOptionDialog(this, "No successful connection", "Connection Refused", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
 
         if (n == 0) {
             try {
-                connection.sendNickHello(Application.localNick);
+                con.sendNickHello(Application.localNick);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -290,14 +320,14 @@ class ChatForm extends JFrame {
         }
     }
 
-    void RejectConnection(String ip,String nick){
+    void rejectConnection(Connection con,String ip,String nick){
         Object[] option = {"Retry", "Cancel"};
 
         int n = JOptionPane.showOptionDialog(this, "User "+nick+"from IP "+ip+" canceled the connection", "Canceled connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
 
         if (n == 0) {
             try {
-                connection.sendNickHello(Application.localNick);
+                con.sendNickHello(Application.localNick);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -308,5 +338,40 @@ class ChatForm extends JFrame {
             messageStory.setEnabled(false);
             messageStory.setText("");
         }
+    }
+    
+    void AcceptConnection(Connection con) {
+        disconnect.setEnabled(true);
+        connect.setEnabled(false);
+        buttonAddFriends.setEnabled(true);
+        myText.setEnabled(true);
+        sendButton.setEnabled(true);
+        messageStory.setEnabled(true);
+        messageStory.setText("");
+
+        sendButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    con.sendMessage(myText.getText()+"\n");
+                    messageStory.setText(messageStory.getText() + "↑" + localNick + ": " + myText.getText() + "\n");
+                    myText.setText("");
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        });
+
+        disconnect.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    con.disconnect();
+                    con.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        });
     }
 }
