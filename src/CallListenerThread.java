@@ -42,4 +42,8 @@ class CallListenerThread extends Observable implements Runnable{
     public Connection getLastConnection() {
       return lastConnection;
     }
+    
+    public CallListener getCallListener() {
+      return cl;
+    }
 }
