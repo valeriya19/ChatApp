@@ -18,7 +18,7 @@ class ChatForm extends JFrame {
     private JTextArea messageStory;
     private JList friendList;
     
-    public static String version = "2015", localNick;
+    public static String localNick;
 
     Vector<Vector<String>> friends=new Vector<Vector<String>>();
     Vector<String> header=new Vector<String>();
@@ -214,7 +214,7 @@ class ChatForm extends JFrame {
                                 callListener= new CallListener();
                                 callListener.setLocalNick(localNick);//��������� ��� ������ �������� ���
                                 Connection connection = callListener.getConnection();
-				connection.sendNickHello(version, localNick);
+				connection.sendNickHello(localNick);
 				
 				commandListenerServer = new CommandListenerThread(callListener.getConnection());//����������� �������� ���������� ������ ������� ����� ������� �������� ����������
 				commandListenerServer.addObserver(new ListenerConnection());
@@ -280,24 +280,25 @@ class ChatForm extends JFrame {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-        }
-        else if (status==Status.REQUEST_FOR_CONNECT){
-            status=Status.BUSY;
-            textFieldNick.setEnabled(false);
-            textFieldNick.setText(nick);
-            textFieldIp.setText(ip);
-            textFieldIp.setEnabled(false);
-            try {
-                con.sendNickHello(version,localNick);
-            } catch (IOException e) {
+        } else
+	    if (status==Status.REQUEST_FOR_CONNECT){
+	      status=Status.BUSY;
+	      textFieldNick.setEnabled(false);
+	      textFieldNick.setText(nick);
+	      textFieldIp.setText(ip);
+	      textFieldIp.setEnabled(false);
+	      try {
+                con.sendNickHello(localNick);
+	      } catch (IOException e) {
                 e.printStackTrace();
-            }
-        }else if (status==Status.BUSY)
-            try {
-                con.sendNickBusy(version,localNick);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+	      }
+	    } else
+		if (status==Status.BUSY)
+		  try {
+		    con.sendNickBusy(localNick);
+		  } catch (IOException e) {
+		      e.printStackTrace();
+		  }
     }
 
     void connectionRefused(Connection con){
@@ -340,7 +341,7 @@ class ChatForm extends JFrame {
         }
     }
     
-    void AcceptConnection(Connection con) {
+    void acceptConnection(Connection con) {
         disconnect.setEnabled(true);
         connect.setEnabled(false);
         buttonAddFriends.setEnabled(true);
