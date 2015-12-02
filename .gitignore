@@ -1,4 +1,4 @@
-п»ї.*
+?.*
 *.class
 
 # Mobile Tools for Java (J2ME)
@@ -12,7 +12,8 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 nbproject/
-src/РЎРѕР±СЃС‚РІРµРЅРЅС‹Р№_СЃС‚РёР»СЊ/
+src/Собственный_стиль/
 build.xml
 manifest.mf
 .gitignore
+*.iml

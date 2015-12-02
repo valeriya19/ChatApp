@@ -4,6 +4,9 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import java.awt.event.*;
 import java.io.*;
+import java.net.InetSocketAddress;
+import java.util.Observable;
+import java.util.Observer;
 import java.util.Vector;
 
 /**
@@ -18,28 +21,29 @@ class ChatForm extends JFrame {
     private JTextArea messageStory;
     private JList friendList;
     
-    public static String localNick;
+    private static String localNick;
 
-    Vector<Vector<String>> friends=new Vector<Vector<String>>();
-    Vector<String> header=new Vector<String>();
-    DefaultTableModel model;
+    private Vector<Vector<String>> friends=new Vector<Vector<String>>();
+    private Vector<String> header=new Vector<String>();
+    private DefaultTableModel model;
 
     //объявления класса для взаимодействия с протоколом
-    Connection connection=null;
+    private Connection connection=null;
 
     //Объявление классов-слушателей протокола
-    Caller caller=null;
-    CallListener callListener=null;
-    CommandListenerThread commandListenerServer=null;
-    CommandListenerThread commandListenerClient=null;
+    private Caller caller=null;
+    private CallListener callListener=null;
+    private CommandListenerThread commandListenerServer=null;
+    private CommandListenerThread commandListenerClient=null;
 
     //состояние программы
     private static enum Status {BUSY, SERVER_NOT_STARTED, OK,CLIENT_CONNECTED,REQUEST_FOR_CONNECT};
 
-    public Status status;
+    private Status status;
+
+    private Observer observer;
 
     public ChatForm() {
-        //����������� �����
         super();
         setContentPane(rootPanel);
         setSize(700, 500);
@@ -53,7 +57,6 @@ class ChatForm extends JFrame {
         myText.setEnabled(false);
         sendButton.setEnabled(false);
 
-        //������ ����� � ��������
         header.add("Nick");
         header.add("IP");
         friends.add(header);
@@ -75,12 +78,44 @@ class ChatForm extends JFrame {
         model=new DefaultTableModel(friends,header);
         tableFriends.setModel(model);
 
-        connect.addActionListener(new ActionListener() { //��� ������� �� connect ������� ����� � ����������� � �������
+        observer = new Observer() {
+            @Override
+            public void update(Observable o, Object arg) {
+                arg = commandListenerServer.getLastCommand();
+                if (((Command) arg).getType() == Command.CommandType.NICK) {
+                    System.out.println("Nick is coming");
+                    if (o instanceof CommandListenerThread) {
+                        newConnection(connection, ((InetSocketAddress) callListener.getRemoteAddress()).getHostName(), ((NickCommand) arg).getNick());
+                    }
+                } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
+                    System.out.println("Accept is coming");
+                    if (o instanceof CommandListenerThread) {
+                        acceptConnection(connection);
+                    }
+                } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
+                    System.out.println("Reject is coming");
+                    if (o instanceof CommandListenerThread) {
+                        rejectConnection(connection, ((InetSocketAddress) callListener.getRemoteAddress()).getHostName(), callListener.getRemoteNick());
+                    }
+                } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
+                    System.out.println("Message is coming");
+                    if (o instanceof CommandListenerThread) {
+                        newMessage(connection, ((MessageCommand) arg).getMessage());
+                    }
+                } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
+                    System.out.println("Disconnect is coming");
+                    if (o instanceof CommandListenerThread) {
+                        connectionRefused(connection);
+                    }
+                }
+            }
+        };
+
+        connect.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (caller==null){
-
-                     new Thread(new Runnable() {
+                if (caller == null) {
+                    new Thread(new Runnable() {
                         @Override
                         public void run() {
                             caller = new Caller(localNick, textFieldIp.getText());
@@ -89,16 +124,14 @@ class ChatForm extends JFrame {
                             } catch (IOException e1) {
                                 e1.printStackTrace();
                             }
-                            commandListenerClient.addObserver(new ListenerConnection());
+                            commandListenerClient.addObserver(observer);
                             commandListenerClient.start();
                         }
                     }).start();
-                    status=Status.REQUEST_FOR_CONNECT;
+                    status = Status.REQUEST_FOR_CONNECT;
                 }
             }
         });
-
-        this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
         //dialog when we want to close the program
         this.addWindowListener(new WindowListener() {
@@ -116,7 +149,6 @@ class ChatForm extends JFrame {
                 if (n == 0) {
                     e.getWindow().setVisible(false);
 
-                    //���������� ������ ������
                     try (FileWriter fileWriter = new FileWriter("friendList.chat")) {
                         for (int i = 1; i < model.getRowCount(); i++) {
                             fileWriter.write(model.getValueAt(i, 0).toString() + "\n");
@@ -184,8 +216,8 @@ class ChatForm extends JFrame {
         tableFriends.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode()==127)//������� delete
-                    if (tableFriends.getSelectedRow()>0) {
+                if (e.getKeyCode() == 127)//������� delete
+                    if (tableFriends.getSelectedRow() > 0) {
                         model.removeRow(tableFriends.getSelectedRow());
                         tableFriends.clearSelection();
                     }
@@ -206,26 +238,26 @@ class ChatForm extends JFrame {
                     textFieldLocalNick.setEnabled(false);
                     buttonChangeLocalNick.setEnabled(false);
 
-                    status = Status.SERVER_NOT_STARTED;//��� ������ �� ����� ��������� ����� � ������� ����������� ��������� ��� �������
+                    status = Status.SERVER_NOT_STARTED;
                     Runnable runnable = new Runnable() {
                         @Override
                         public void run() {
                             try {
-                                callListener= new CallListener();
-                                callListener.setLocalNick(localNick);//��������� ��� ������ �������� ���
+                                callListener = new CallListener();
+                                callListener.setLocalNick(localNick);
                                 Connection connection = callListener.getConnection();
-				connection.sendNickHello(localNick);
-				
-				commandListenerServer = new CommandListenerThread(callListener.getConnection());//����������� �������� ���������� ������ ������� ����� ������� �������� ����������
-				commandListenerServer.addObserver(new ListenerConnection());
-                                commandListenerServer.start();	
+                                connection.sendNickHello(localNick);
+
+                                commandListenerServer = new CommandListenerThread(connection);
+                                commandListenerServer.addObserver(observer);
+                                commandListenerServer.start();
                             } catch (IOException e1) {
                                 e1.printStackTrace();
                             }
                         }
                     };
                     new Thread(runnable).start();
-		    status=Status.OK;
+                    status = Status.OK;
                 }
             }
         });
@@ -243,7 +275,7 @@ class ChatForm extends JFrame {
         myText.addKeyListener(new KeyAdapter() {
             @Override
             public void keyTyped(KeyEvent e) {
-                if (e.getKeyChar()=='\n')
+                if (e.getKeyChar() == '\n')
                     sendButton.doClick();
                 else
                     super.keyTyped(e);
@@ -282,23 +314,23 @@ class ChatForm extends JFrame {
                 }
         } else
 	    if (status==Status.REQUEST_FOR_CONNECT){
-	      status=Status.BUSY;
-	      textFieldNick.setEnabled(false);
-	      textFieldNick.setText(nick);
-	      textFieldIp.setText(ip);
-	      textFieldIp.setEnabled(false);
-	      try {
-                con.sendNickHello(localNick);
-	      } catch (IOException e) {
-                e.printStackTrace();
-	      }
+	        status=Status.BUSY;
+	        textFieldNick.setEnabled(false);
+            textFieldNick.setText(nick);
+            textFieldIp.setText(ip);
+            textFieldIp.setEnabled(false);
+            try {
+                  con.sendNickHello(localNick);
+            } catch (IOException e) {
+                  e.printStackTrace();
+            }
 	    } else
 		if (status==Status.BUSY)
-		  try {
-		    con.sendNickBusy(localNick);
-		  } catch (IOException e) {
-		      e.printStackTrace();
-		  }
+            try {
+              con.sendNickBusy(localNick);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
     }
 
     void connectionRefused(Connection con){
@@ -308,7 +340,7 @@ class ChatForm extends JFrame {
 
         if (n == 0) {
             try {
-                con.sendNickHello(Application.localNick);
+                con.sendNickHello(localNick);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -328,7 +360,7 @@ class ChatForm extends JFrame {
 
         if (n == 0) {
             try {
-                con.sendNickHello(Application.localNick);
+                con.sendNickHello(localNick);
             } catch (IOException e) {
                 e.printStackTrace();
             }
