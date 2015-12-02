@@ -22,8 +22,8 @@ class CallListener{
 	}
 	
 	public CallListener(String localNick, String localIP) throws IOException {
-                ss = new ServerSocket(Protocol.port);
-		ss.bind(new InetSocketAddress(localIP, Protocol.port));
+        ss = new ServerSocket(Protocol.port);
+//		ss.bind(new InetSocketAddress(localIP, Protocol.port));
 		this.localNick = localNick;
 		this.listenAddress = ss.getLocalSocketAddress();
 	}
