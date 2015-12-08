@@ -10,38 +10,49 @@ import java.util.Observer;
 import java.util.Vector;
 
 /**
- *
  * @author valeriya19
  */
 class ChatForm extends JFrame {
     private JPanel rootPanel;
-    private JButton connect, disconnect, buttonAddFriends, buttonChangeLocalNick, sendButton;
-    private JTextField textFieldIp, textFieldNick, textFieldLocalNick, myText;
+    private JButton connect,
+            disconnect,
+            buttonAddFriends,
+            buttonChangeLocalNick,
+            sendButton;
+    private JTextField textFieldIp,
+            textFieldNick,
+            textFieldLocalNick,
+            myText;
     private JTable tableFriends;
     private JTextArea messageStory;
-    private JList friendList;
-    
+    //private JList friendList;
+
     private static String localNick;
 
-    private Vector<Vector<String>> friends=new Vector<Vector<String>>();
-    private Vector<String> header=new Vector<String>();
+    private Vector<Vector<String>> friends = new Vector<Vector<String>>();
+    private Vector<String> header = new Vector<String>();
     private DefaultTableModel model;
 
     //объявления класса для взаимодействия с протоколом
-    private Connection connection=null;
+    private Connection serverConnection = null;
+    private Connection clientConnection = null;
 
     //Объявление классов-слушателей протокола
-    private Caller caller=null;
-    private CallListener callListener=null;
-    private CommandListenerThread commandListenerServer=null;
-    private CommandListenerThread commandListenerClient=null;
+    private Caller caller = null;
+    private CallListener callListener = null;
+    private CommandListenerThread commandListenerServer = null;
+    private CommandListenerThread commandListenerClient = null;
 
     //состояние программы
-    private static enum Status {BUSY, SERVER_NOT_STARTED, OK,CLIENT_CONNECTED,REQUEST_FOR_CONNECT};
+    private static enum Status {
+        BUSY, SERVER_NOT_STARTED, OK, CLIENT_CONNECTED, REQUEST_FOR_CONNECT
+    }
+
+    ;
 
     private Status status;
 
-    private Observer observer;
+    private Observer clientObserver, serverObserver;
 
     public ChatForm() {
         super();
@@ -63,9 +74,9 @@ class ChatForm extends JFrame {
         try {
             BufferedReader bufferedReader = new BufferedReader(new FileReader("friendList.chat"));
             while (bufferedReader.ready()) {
-                Vector<String> tmp=new Vector<String>();
-                String nick=bufferedReader.readLine();
-                String ip=bufferedReader.readLine();
+                Vector<String> tmp = new Vector<String>();
+                String nick = bufferedReader.readLine();
+                String ip = bufferedReader.readLine();
                 tmp.add(nick);
                 tmp.add(ip);
                 friends.add(tmp);
@@ -75,37 +86,73 @@ class ChatForm extends JFrame {
         } catch (IOException e) {
             System.out.println("Error in reading file");
         }
-        model=new DefaultTableModel(friends,header);
+        model = new DefaultTableModel(friends, header);
         tableFriends.setModel(model);
 
-        observer = new Observer() {
+        messageStory.setAutoscrolls(true);
+
+        clientObserver = new Observer() {
             @Override
             public void update(Observable o, Object arg) {
-                arg = commandListenerServer.getLastCommand();
+
                 if (((Command) arg).getType() == Command.CommandType.NICK) {
                     System.out.println("Nick is coming");
                     if (o instanceof CommandListenerThread) {
-                        newConnection(connection, ((InetSocketAddress) callListener.getRemoteAddress()).getHostName(), ((NickCommand) arg).getNick());
+                        newConnection(clientConnection, caller.getRemoteAddress().toString(), ((NickCommand) arg).getNick());
                     }
                 } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
                     System.out.println("Accept is coming");
                     if (o instanceof CommandListenerThread) {
-                        acceptConnection(connection);
+                        acceptConnection(clientConnection);
                     }
                 } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
                     System.out.println("Reject is coming");
                     if (o instanceof CommandListenerThread) {
-                        rejectConnection(connection, ((InetSocketAddress) callListener.getRemoteAddress()).getHostName(), callListener.getRemoteNick());
+                        rejectConnection(clientConnection, ((InetSocketAddress) caller.getRemoteAddress()).getHostName(), caller.getRemoteNick());
                     }
                 } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
                     System.out.println("Message is coming");
                     if (o instanceof CommandListenerThread) {
-                        newMessage(connection, ((MessageCommand) arg).getMessage());
+                        newMessage(clientConnection, ((MessageCommand) arg).getMessage());
                     }
                 } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
                     System.out.println("Disconnect is coming");
                     if (o instanceof CommandListenerThread) {
-                        connectionRefused(connection);
+                        connectionRefused(clientConnection);
+                    }
+                }
+            }
+        };
+
+
+        serverObserver = new Observer() {
+            @Override
+            public void update(Observable o, Object arg) {
+
+                if (((Command) arg).getType() == Command.CommandType.NICK) {
+                    System.out.println("Nick is coming");
+                    if (o instanceof CommandListenerThread) {
+                        newConnection(serverConnection, callListener.getRemoteAddress().toString(), ((NickCommand) arg).getNick());
+                    }
+                } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
+                    System.out.println("Accept is coming");
+                    if (o instanceof CommandListenerThread) {
+                        acceptConnection(serverConnection);
+                    }
+                } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
+                    System.out.println("Reject is coming");
+                    if (o instanceof CommandListenerThread) {
+                        rejectConnection(serverConnection, ((InetSocketAddress) callListener.getRemoteAddress()).getHostName(), callListener.getRemoteNick());
+                    }
+                } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
+                    System.out.println("Message is coming");
+                    if (o instanceof CommandListenerThread) {
+                        newMessage(serverConnection, ((MessageCommand) arg).getMessage());
+                    }
+                } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
+                    System.out.println("Disconnect is coming");
+                    if (o instanceof CommandListenerThread) {
+                        Disconnect(serverConnection);
                     }
                 }
             }
@@ -120,11 +167,12 @@ class ChatForm extends JFrame {
                         public void run() {
                             caller = new Caller(localNick, textFieldIp.getText());
                             try {
-                                commandListenerClient = new CommandListenerThread(caller.call());
+                                clientConnection = caller.call();
+                                commandListenerClient = new CommandListenerThread(clientConnection);
                             } catch (IOException e1) {
                                 e1.printStackTrace();
                             }
-                            commandListenerClient.addObserver(observer);
+                            commandListenerClient.addObserver(clientObserver);
                             commandListenerClient.start();
                         }
                     }).start();
@@ -199,7 +247,7 @@ class ChatForm extends JFrame {
         });
 
         //copy info from friend list to our textField
-        ListSelectionModel listSelectionModel=tableFriends.getSelectionModel();
+        ListSelectionModel listSelectionModel = tableFriends.getSelectionModel();
         listSelectionModel.addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(ListSelectionEvent e) {
@@ -216,7 +264,7 @@ class ChatForm extends JFrame {
         tableFriends.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == 127)//������� delete
+                if (e.getKeyCode() == 127)//??????? delete
                     if (tableFriends.getSelectedRow() > 0) {
                         model.removeRow(tableFriends.getSelectedRow());
                         tableFriends.clearSelection();
@@ -245,11 +293,11 @@ class ChatForm extends JFrame {
                             try {
                                 callListener = new CallListener();
                                 callListener.setLocalNick(localNick);
-                                Connection connection = callListener.getConnection();
-                                connection.sendNickHello(localNick);
+                                serverConnection = callListener.getConnection();
+                                serverConnection.sendNickHello(localNick);
 
-                                commandListenerServer = new CommandListenerThread(connection);
-                                commandListenerServer.addObserver(observer);
+                                commandListenerServer = new CommandListenerThread(serverConnection);
+                                commandListenerServer.addObserver(serverObserver);
                                 commandListenerServer.start();
                             } catch (IOException e1) {
                                 e1.printStackTrace();
@@ -266,12 +314,12 @@ class ChatForm extends JFrame {
         textFieldLocalNick.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyChar()=='\n')
+                if (e.getKeyChar() == '\n')
                     buttonChangeLocalNick.doClick();
                 super.keyPressed(e);
             }
         });
-    
+
         myText.addKeyListener(new KeyAdapter() {
             @Override
             public void keyTyped(KeyEvent e) {
@@ -282,22 +330,31 @@ class ChatForm extends JFrame {
             }
         });
     }
-    
-    void newMessage(Connection con,String msgText) {
-        if (msgText!=null){
-            messageStory.setText(messageStory.getText()+"↓"+textFieldNick.getText()+": "+msgText+"\n");
-            myText.setText("");
+
+    void newMessage(Connection con, String msgText) {
+        if (msgText != null) {
+            messageStory.setText(messageStory.getText() + "?" + textFieldNick.getText() + ": " + msgText + "\n");
         }
     }
 
-    void newConnection(Connection con,String ip, String nick) {
-        if (status==Status.OK){
+    void Disconnect(Connection con) {
+        try {
+            con.disconnect();
+            con.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        buttonChangeLocalNick.doClick();
+    }
+
+    void newConnection(Connection con, String ip, String nick) {
+        if (status == Status.OK) {
             Object[] option = {"Connect", "Disconnect"};
             int n = JOptionPane.showOptionDialog(this, "User " + nick + " from IP " + ip + " wants to chat with you", "New connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
             if (n == 0) {
                 try {
                     con.accept();
-                    status=Status.BUSY;
+                    status = Status.BUSY;
                     textFieldNick.setEnabled(false);
                     textFieldNick.setText(nick);
                     textFieldIp.setText(ip);
@@ -312,28 +369,26 @@ class ChatForm extends JFrame {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-        } else
-	    if (status==Status.REQUEST_FOR_CONNECT){
-	        status=Status.BUSY;
-	        textFieldNick.setEnabled(false);
+        } else if (status == Status.REQUEST_FOR_CONNECT) {
+            status = Status.BUSY;
+            textFieldNick.setEnabled(false);
             textFieldNick.setText(nick);
             textFieldIp.setText(ip);
             textFieldIp.setEnabled(false);
             try {
-                  con.sendNickHello(localNick);
+                con.sendNickHello(localNick);
             } catch (IOException e) {
-                  e.printStackTrace();
+                e.printStackTrace();
             }
-	    } else
-		if (status==Status.BUSY)
+        } else if (status == Status.BUSY)
             try {
-              con.sendNickBusy(localNick);
+                con.sendNickBusy(localNick);
             } catch (IOException e) {
                 e.printStackTrace();
             }
     }
 
-    void connectionRefused(Connection con){
+    void connectionRefused(Connection con) {
         Object[] option = {"Retry", "Cancel"};
 
         int n = JOptionPane.showOptionDialog(this, "No successful connection", "Connection Refused", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
@@ -344,8 +399,7 @@ class ChatForm extends JFrame {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
-	else {
+        } else {
             myText.setEnabled(false);
             sendButton.setEnabled(false);
             messageStory.setEnabled(false);
@@ -353,10 +407,10 @@ class ChatForm extends JFrame {
         }
     }
 
-    void rejectConnection(Connection con,String ip,String nick){
+    void rejectConnection(Connection con, String ip, String nick) {
         Object[] option = {"Retry", "Cancel"};
 
-        int n = JOptionPane.showOptionDialog(this, "User "+nick+"from IP "+ip+" canceled the connection", "Canceled connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
+        int n = JOptionPane.showOptionDialog(this, "User " + nick + "from IP " + ip + " canceled the connection", "Canceled connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
 
         if (n == 0) {
             try {
@@ -364,15 +418,14 @@ class ChatForm extends JFrame {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
-        else{
+        } else {
             myText.setEnabled(false);
             sendButton.setEnabled(false);
             messageStory.setEnabled(false);
             messageStory.setText("");
         }
     }
-    
+
     void acceptConnection(Connection con) {
         disconnect.setEnabled(true);
         connect.setEnabled(false);
@@ -386,8 +439,8 @@ class ChatForm extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    con.sendMessage(myText.getText()+"\n");
-                    messageStory.setText(messageStory.getText() + "↑" + localNick + ": " + myText.getText() + "\n");
+                    con.sendMessage(myText.getText() + "\n");
+                    messageStory.setText(messageStory.getText() + "?" + localNick + ": " + myText.getText() + "\n");
                     myText.setText("");
                 } catch (IOException e1) {
                     e1.printStackTrace();

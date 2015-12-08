@@ -1,20 +1,19 @@
+import javax.swing.*;
 import java.lang.reflect.InvocationTargetException;
-import javax.swing.JFrame;
-import javax.swing.SwingUtilities;
 
 public class Application {
     public static ChatForm form = new ChatForm();
-    
+
     public static void main(String[] args) {
         try {
-	        SwingUtilities.invokeAndWait(new Runnable() {
+            SwingUtilities.invokeAndWait(new Runnable() {
                 public void run() {
-                    form.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    form.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
                     form.setVisible(true);
-                  }
-	    });
+                }
+            });
         } catch (InterruptedException | InvocationTargetException ex) {
-	        System.exit(1);
+            System.exit(1);
         }
     }
 }

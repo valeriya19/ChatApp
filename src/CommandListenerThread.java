@@ -13,7 +13,7 @@ class CommandListenerThread extends Observable implements Runnable {
 
     public CommandListenerThread(Connection con) {
         connection = con;
-	thisThread = new Thread(this);
+        thisThread = new Thread(this);
     }
 
     public Command getLastCommand() {
@@ -38,8 +38,8 @@ class CommandListenerThread extends Observable implements Runnable {
                 Command checked = connection.receive();
                 if (checked != null) {
                     lastCommand = checked;
-		    setChanged();
-                    notifyObservers();
+                    setChanged();
+                    notifyObservers(checked);
                 }
             } catch (IOException ex) {
                 stopped = true;
