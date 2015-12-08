@@ -11,9 +11,7 @@ public class Caller {
     private SocketAddress remoteAddress;
     private CallStatus status;
 
-    static enum CallStatus {OK, NOT_ACCESSIBLE, BUSY, REJECTED, NO_SERVICE}
-
-    ;
+    static enum CallStatus {OK, NOT_ACCESSIBLE, BUSY, REJECTED, NO_SERVICE};
 
     public Caller() {
         this(Protocol.defaultLocalNick, new InetSocketAddress(Protocol.defaultLocalIPAddress, Protocol.port));
@@ -42,9 +40,7 @@ public class Caller {
     public String getLocalNick() {
         return localNick;
     }
-    public void setRemoteNick(String arg){
-        remoteNick=arg;
-    }
+    
     public SocketAddress getRemoteAddress() {
         return remoteAddress;
     }
