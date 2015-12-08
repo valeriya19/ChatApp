@@ -43,6 +43,8 @@ class ChatForm extends JFrame {
     private CommandListenerThread commandListenerServer = null;
     private CommandListenerThread commandListenerClient = null;
 
+    ServerConnection c;
+
     //состояние программы
     private static enum Status {
         BUSY, SERVER_NOT_STARTED, OK, CLIENT_CONNECTED, REQUEST_FOR_CONNECT
@@ -91,6 +93,8 @@ class ChatForm extends JFrame {
         }
         model = new DefaultTableModel(friends, header);
         tableFriends.setModel(model);
+        tableFriends.setAutoscrolls(true);
+
 
         messageStory.setAutoscrolls(true);
 
@@ -260,6 +264,7 @@ class ChatForm extends JFrame {
                     } catch (IOException e1) {
                         e1.printStackTrace();
                     }
+                    c.goOffline();
                     System.exit(0);
                 }
             }
@@ -362,6 +367,22 @@ class ChatForm extends JFrame {
                     new Thread(runnable).start();
                     status = Status.OK;
                 }
+                while (model.getRowCount()>0)
+                    model.removeRow(0);
+                c = new ServerConnection(null,localNick);
+                c.setServerAddress("jdbc:mysql://files.litvinov.in.ua/chatapp_server?characterEncoding=utf-8&useUnicode=true");
+                c.connect();
+                String[] nicknames = c.getAllNicks();
+                for (String nick:nicknames)
+                {
+
+                    String[] row = new String[2];
+                    row[0]=nick;
+                    row[1]=c.getIpForNick(nick);
+                    model.addRow(row);
+                }
+                c.goOnline();
+
             }
         });
 
