@@ -3,6 +3,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.security.MessageDigest;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 /**
@@ -30,8 +31,12 @@ public class Connection {
 
     public Command receive() throws IOException {
         StringBuilder it = new StringBuilder();
-        it.append(input.nextLine());
-        it.append(Protocol.endOfLine);
+        try{
+            it.append(input.nextLine());
+            it.append(Protocol.endOfLine);
+        }catch(NoSuchElementException e){
+            return null;
+        }
         Command command=Command.getCommand(it.toString());
         if (command!=null && command.getClass()==MessageCommand.class)
             ((MessageCommand)command).setMessage(receiveMessage());

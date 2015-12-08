@@ -42,7 +42,9 @@ public class Caller {
     public String getLocalNick() {
         return localNick;
     }
-
+    public void setRemoteNick(String arg){
+        remoteNick=arg;
+    }
     public SocketAddress getRemoteAddress() {
         return remoteAddress;
     }
