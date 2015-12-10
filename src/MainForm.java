@@ -9,7 +9,7 @@ import java.util.Vector;
 /**
  * @author valeriya19
  */
-class ChatForm extends JFrame {
+class MainForm extends JFrame {
     private JPanel rootPanel;
     private JButton connect,
                     disconnect,
@@ -29,7 +29,7 @@ class ChatForm extends JFrame {
     
     private Application logicModel;
 
-    public ChatForm(Application logic) {
+    public MainForm(Application logic) {
         super();
 	logicModel = logic;
         setContentPane(rootPanel);
@@ -100,9 +100,7 @@ class ChatForm extends JFrame {
         //dialog when we want to close the program
         this.addWindowListener(new WindowListener() {
             @Override
-            public void windowOpened(WindowEvent e) {
-	      logicModel.loadContactsFromFile();
-	    }
+            public void windowOpened(WindowEvent e) {}
 
             @Override
             public void windowClosing(WindowEvent e) {

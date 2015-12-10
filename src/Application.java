@@ -3,7 +3,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.util.Date;
 import java.util.Observable;
@@ -13,7 +12,7 @@ import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
 public class Application {
-  public static ChatForm form;
+  private MainForm form;
   private String localNick;
   private Vector<Vector<String>> friends;
   private Vector<String> header;
@@ -24,15 +23,17 @@ public class Application {
   private CallListener callListener;
   private CommandListenerThread commandListenerServer;
   private CommandListenerThread commandListenerClient;
-  private ServerConnection c;
+  private ServerConnection contactDataServer;
   private static enum Status {BUSY, SERVER_NOT_STARTED, OK, CLIENT_CONNECTED, REQUEST_FOR_CONNECT};
   private static enum ConnectionStatus {AS_SERVER, AS_CLIENT, AS_NULL};
   private final Observer clientObserver, serverObserver;
-  private HistoryModel messageContainer;
-  private ConnectionStatus currentSuccessConnection = ConnectionStatus.AS_NULL;
+  private final HistoryModel messageContainer;
+  private ConnectionStatus currentSuccessConnection;
   private Status status;
 
   public Application() {
+    this.currentSuccessConnection = ConnectionStatus.AS_NULL;
+    
     clientObserver = new Observer() {
       @Override
       public void update(Observable o, Object arg) {
@@ -116,12 +117,17 @@ public class Application {
 	}
       }
     };
+    
     header = new Vector<String>(2);
     header.add("Nick");
     header.add("IP");
     friends = new Vector<Vector<String>>();
     
-    form = new ChatForm(this);
+    loadContactsFromFile();
+    
+    messageContainer = new HistoryModel();
+    
+    form = new MainForm(this);
   }
   
   public String getLocalNick() {
@@ -178,17 +184,17 @@ public class Application {
     status = Status.OK;
     while (contactModel.getRowCount()>0)
       contactModel.removeRow(0);
-    c = new ServerConnection(null,localNick);
-    c.setServerAddress("jdbc:mysql://files.litvinov.in.ua/chatapp_server?characterEncoding=utf-8&useUnicode=true");
-    c.connect();
-    String[] nicknames = c.getAllNicks();
+    contactDataServer = new ServerConnection(null,localNick);
+    contactDataServer.setServerAddress("jdbc:mysql://files.litvinov.in.ua/chatapp_server?characterEncoding=utf-8&useUnicode=true");
+    contactDataServer.connect();
+    String[] nicknames = contactDataServer.getAllNicks();
     for (String nick:nicknames) {
 	Vector<String> row = new Vector<String>(2);
 	row.add(nick);
-	row.add(c.getIpForNick(nick));
+	row.add(contactDataServer.getIpForNick(nick));
 	contactModel.addRow(row);
     }
-    c.goOnline();
+    contactDataServer.goOnline();
   }
   
   public void finishCall() {
@@ -214,10 +220,10 @@ public class Application {
   public void sendMessage(String text) {
     try {
       if (currentSuccessConnection == ConnectionStatus.AS_SERVER) {
-	serverConnection.sendMessage(text + "\n");
+	serverConnection.sendMessage(text);
       } else 
 	if (currentSuccessConnection == ConnectionStatus.AS_CLIENT) {
-	  clientConnection.sendMessage(text + "\n");
+	  clientConnection.sendMessage(text);
       }
       addMessage(text);
     } catch (IOException e1) {
@@ -259,13 +265,13 @@ public class Application {
   public void saveContactsToFile() {
     try (FileWriter fileWriter = new FileWriter("friendList.chat")) {
       for (int i = 1; i < contactModel.getRowCount(); i++) {
-	  fileWriter.write(contactModel.getValueAt(i, 0).toString() + "\n");
-	  fileWriter.write(contactModel.getValueAt(i, 1).toString() + "\n");
+	  fileWriter.write(contactModel.getValueAt(i, 0).toString() + Protocol.endOfLine);
+	  fileWriter.write(contactModel.getValueAt(i, 1).toString() + Protocol.endOfLine);
       }
     } catch (IOException e1) {
 	e1.printStackTrace();
     }
-    c.goOffline();
+    contactDataServer.goOffline();
   }
   
   public void makeOutcomingCall(String remoteIP) {
@@ -276,14 +282,13 @@ public class Application {
 	  try {
 	      clientConnection = caller.call();
 	      commandListenerClient = new CommandListenerThread(clientConnection);
+	      commandListenerClient.addObserver(clientObserver);
+	      currentSuccessConnection = ConnectionStatus.AS_CLIENT;
+	      commandListenerClient.start();
 	      clientConnection.sendNickHello(localNick);
 	  } catch (IOException e1) {
 	      e1.printStackTrace();
 	  }
-	  commandListenerClient.addObserver(clientObserver);
-
-	  currentSuccessConnection = ConnectionStatus.AS_CLIENT;
-	  commandListenerClient.start();
       }
     }).start();
     status = Status.REQUEST_FOR_CONNECT;
@@ -302,18 +307,18 @@ public class Application {
   public HistoryModel getMessageHistoryModel() {
     return messageContainer;
   }
+  
+  public MainForm getForm() {
+    return form;
+  }
 
   public static void main(String[] args) {
     Application chatApp = new Application();
-    try {
-      SwingUtilities.invokeAndWait(new Runnable() {
-	public void run() {
-	  form.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-	  form.setVisible(true);
-	}
-      });
-    } catch (InterruptedException | InvocationTargetException ex) {
-      System.exit(1);
-    }
+    SwingUtilities.invokeLater(new Runnable() {
+      public void run() {
+	chatApp.getForm().setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	chatApp.getForm().setVisible(true);
+      }
+    });
   }
 }
