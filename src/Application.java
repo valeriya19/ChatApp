@@ -37,84 +37,94 @@ public class Application {
     clientObserver = new Observer() {
       @Override
       public void update(Observable o, Object arg) {
-	  if (((Command) arg).getType() == Command.CommandType.NICK) {
-	      //System.out.println("Nick is coming");
-	      if (o instanceof CommandListenerThread)
-		try {
-		  clientConnection.accept();
-		} catch (IOException e1) {
-		  e1.printStackTrace();
+	SwingUtilities.invokeLater(new Runnable() {
+	  @Override
+	  public void run() {
+	    if (((Command) arg).getType() == Command.CommandType.NICK) {
+		//System.out.println("Nick is coming");
+		if (o instanceof CommandListenerThread)
+		  try {
+		    clientConnection.accept();
+		  } catch (IOException e1) {
+		    e1.printStackTrace();
+		  }
+	    } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
+		//System.out.println("Accept is coming");
+		if (o instanceof CommandListenerThread) {
+		  form.acceptedCall();
 		}
-	  } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
-	      //System.out.println("Accept is coming");
-	      if (o instanceof CommandListenerThread) {
-		form.acceptedCall();
-	      }
-	  } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
-	      //System.out.println("Reject is coming");
-	      if (o instanceof CommandListenerThread) {
-		currentSuccessConnection = ConnectionStatus.AS_NULL;
-		form.showCallRetryDialog();
-	      }
-	  } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
-	      //System.out.println("Message is coming");
-	      if (o instanceof CommandListenerThread) {
-		addMessage(((MessageCommand) arg).getMessage());
-	      }
-	  } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
-	      //System.out.println("Disconnect is coming");
-	      if (o instanceof CommandListenerThread) {
-		status=Status.OK;
-		form.showCallFinishDialog();
-	      }
+	    } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
+		//System.out.println("Reject is coming");
+		if (o instanceof CommandListenerThread) {
+		  currentSuccessConnection = ConnectionStatus.AS_NULL;
+		  form.showCallRetryDialog();
+		}
+	    } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
+		//System.out.println("Message is coming");
+		if (o instanceof CommandListenerThread) {
+		  addMessage(((MessageCommand) arg).getMessage());
+		}
+	    } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
+		//System.out.println("Disconnect is coming");
+		if (o instanceof CommandListenerThread) {
+		  status=Status.OK;
+		  form.showCallFinishDialog();
+		}
+	    }
 	  }
+	});
       }
     };
     
     serverObserver = new Observer() {
       @Override
       public void update(Observable o, Object arg) {
-	if (((Command) arg).getType() == Command.CommandType.NICK) {
-	    //System.out.println("Nick is coming");
-	    if (o instanceof CommandListenerThread) {
-	      if (status == Status.BUSY)
-		try {
-		  serverConnection.sendNickBusy(localNick);
-		} catch (IOException e1) {
-		  e1.printStackTrace();
+	SwingUtilities.invokeLater(new Runnable() {
+	  @Override
+	  public void run() {
+	    if (((Command) arg).getType() == Command.CommandType.NICK) {
+		//System.out.println("Nick is coming");
+		if (o instanceof CommandListenerThread) {
+		  if (status == Status.BUSY)
+		    try {
+		      serverConnection.sendNickBusy(localNick);
+		    } catch (IOException e1) {
+		      e1.printStackTrace();
+		    }
+		  else
+		    try {
+		      serverConnection.sendNickHello(localNick);
+		    } catch (IOException e1) {
+		      e1.printStackTrace();
+		    }
 		}
-	      else
-		try {
-		  serverConnection.sendNickHello(localNick);
-		} catch (IOException e1) {
-		  e1.printStackTrace();
+	    } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
+		//System.out.println("Accept is coming");
+		if (o instanceof CommandListenerThread) {
+		  form.showIncomingCallDialog(callListener.getRemoteNick(), ((InetSocketAddress) callListener.getRemoteAddress()).getHostString());
+		}
+	    } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
+		//System.out.println("Reject is coming");
+		if (o instanceof CommandListenerThread) {
+		  form.rejectedCall();
+		}
+	    } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
+		//System.out.println("Message is coming");
+		if (o instanceof CommandListenerThread) {
+		  addMessage(((MessageCommand) arg).getMessage());
+		}
+	    } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
+		//System.out.println("Disconnect is coming");
+		if (o instanceof CommandListenerThread) {
+		  try {
+		    serverConnection.close();
+		  } catch (IOException e1) {
+		    e1.printStackTrace();
+		  }
 		}
 	    }
-	} else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
-	    //System.out.println("Accept is coming");
-	    if (o instanceof CommandListenerThread) {
-	      form.showIncomingCallDialog(callListener.getRemoteNick(), ((InetSocketAddress) callListener.getRemoteAddress()).getHostString());
-	    }
-	} else if (((Command) arg).getType() == Command.CommandType.REJECT) {
-	    //System.out.println("Reject is coming");
-	    if (o instanceof CommandListenerThread) {
-	      form.rejectedCall();
-	    }
-	} else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
-	    //System.out.println("Message is coming");
-	    if (o instanceof CommandListenerThread) {
-	      addMessage(((MessageCommand) arg).getMessage());
-	    }
-	} else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
-	    //System.out.println("Disconnect is coming");
-	    if (o instanceof CommandListenerThread) {
-	      try {
-		serverConnection.close();
-	      } catch (IOException e1) {
-		e1.printStackTrace();
-	      }
-	    }
-	}
+	  }
+	});
       }
     };
     
