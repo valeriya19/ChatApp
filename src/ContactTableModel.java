@@ -60,4 +60,8 @@ class ContactTableModel extends AbstractTableModel {
     else
       throw new ArrayIndexOutOfBoundsException();
   }
+  
+  public void clear() {
+    data.clear();
+  }
 }

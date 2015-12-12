@@ -15,7 +15,7 @@ public class Application {
   private MainForm form;
   private String localNick;
   private Vector<Vector<String>> friends;
-  private Vector<String> header;
+  private final Vector<String> header;
   private ContactTableModel contactModel;
   private Connection incomingConnection;
   private Connection outcomingConnection;
@@ -23,7 +23,7 @@ public class Application {
   private CallListener callListener;
   private CommandListenerThread commandListenerServer;
   private CommandListenerThread commandListenerClient;
-  private ServerConnection contactDataServer;
+  private final ServerConnection contactDataServer;
   private static enum Status {BUSY, SERVER_NOT_STARTED, OK, CLIENT_CONNECTED, REQUEST_FOR_CONNECT};
   private static enum ConnectionStatus {AS_SERVER, AS_CLIENT, AS_NULL};
   private final Observer outcomingCallObserver, incomingCallObserver;
@@ -130,6 +130,8 @@ public class Application {
     
     messageContainer = new HistoryModel();
     
+    contactDataServer = new ServerConnection(Protocol.serverAddress, localNick);
+    
     form = new MainForm(this);
   }
   
@@ -197,12 +199,10 @@ public class Application {
   }
   
   public void loadContactsFromServer() {
-    while (contactModel.getRowCount() > 0)
-      contactModel.removeRow(0);
-    contactDataServer = new ServerConnection("jdbc:mysql://files.litvinov.in.ua/chatapp_server?characterEncoding=utf-8&useUnicode=true", localNick);
+    contactModel.clear();
     contactDataServer.connect();
     String[] nicknames = contactDataServer.getAllNicks();
-    for (String nick:nicknames) {
+    for (String nick: nicknames) {
       Vector<String> row = new Vector<String>(2);
       row.add(nick);
       row.add(contactDataServer.getIpForNick(nick));
@@ -258,7 +258,7 @@ public class Application {
   }
   
   public void loadContactsFromFile() {
-    try (BufferedReader bufferedReader = new BufferedReader(new FileReader("friendList.chat"))) {
+    try (BufferedReader bufferedReader = new BufferedReader(new FileReader(Protocol.contactFileName))) {
       while (bufferedReader.ready()) {
 	Vector<String> tmp = new Vector<String>();
 	String nick = bufferedReader.readLine();
@@ -277,7 +277,7 @@ public class Application {
   }
   
   public void saveContactsToFile() {
-    try (FileWriter fileWriter = new FileWriter("friendList.chat")) {
+    try (FileWriter fileWriter = new FileWriter(Protocol.contactFileName)) {
       for (int i = 1; i < contactModel.getRowCount(); i++) {
 	fileWriter.write(contactModel.getValueAt(i, 0).toString() + Protocol.endOfLine);
 	fileWriter.write(contactModel.getValueAt(i, 1).toString() + Protocol.endOfLine);
