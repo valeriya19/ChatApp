@@ -21,7 +21,7 @@ public class ServerConnection {
     }
     if (address != null) {
       setServerAddress(address);
-      connect();
+//      connect();
     }// if
   }
 
