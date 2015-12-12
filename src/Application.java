@@ -154,7 +154,7 @@ public class Application {
     
     messageContainer = new HistoryModel();
     
-    contactDataServer = new ServerConnection(Protocol.serverAddress, localNick);
+    contactDataServer = new ServerConnection(Protocol.serverAddress);
     
     form = new MainForm(this);
   }
@@ -187,6 +187,7 @@ public class Application {
       localNick = Protocol.defaultLocalNick;
     else
       localNick = newNick;
+    contactDataServer.setLocalNick(localNick);
     loadContactsFromServer();
     startListeningForCalls();
   }
@@ -213,7 +214,7 @@ public class Application {
       row.add(contactDataServer.getIpForNick(nick));
       contactModel.addRow(row);
     }
-    contactDataServer.goOnline();
+    contactDataServer.goOnline(Protocol.port);
   }
   
   public void finishCall() {
