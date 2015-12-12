@@ -105,7 +105,7 @@ class MainForm extends JFrame {
             @Override
             public void windowClosing(WindowEvent e) {
                 Object[] option = {"Yes", "No"};
-                int n = JOptionPane.showOptionDialog(e.getComponent(), "Are you really want to exit?", "Close window?", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
+                int n = JOptionPane.showOptionDialog(e.getComponent(), "Do you really want to exit?", "Close window?", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
                 if (n == 0) {
                     logicModel.saveContactsToFile();
 		    e.getWindow().setVisible(false);
@@ -204,7 +204,7 @@ class MainForm extends JFrame {
 
     public void showIncomingCallDialog(String nick, String IP) {
 	Object[] option = {"Connect", "Disconnect"};
-	int n = JOptionPane.showOptionDialog(this, "User " + nick + " from IP " + IP + " wants to chat with you", "New connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
+	int n = JOptionPane.showOptionDialog(this, "User " + nick + " from address " + IP + " wants to chat with you", "New connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
 	if (n == 0) {
 	  logicModel.acceptIncomingCall();
 	  textFieldNick.setText(nick);
