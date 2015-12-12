@@ -30,7 +30,7 @@ class CallListenerThread extends Observable implements Runnable {
                 if (checked != null) {
                     lastConnection = checked;
                     setChanged();
-                    notifyObservers();
+                    notifyObservers(lastConnection);
                 }
             } catch (IOException ex) {
                 sleep = true;

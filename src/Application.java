@@ -17,22 +17,25 @@ public class Application {
   private Vector<Vector<String>> friends;
   private final Vector<String> header;
   private ContactTableModel contactModel;
-  private Connection incomingConnection;
-  private Connection outcomingConnection;
+  private Connection incomingConnection,
+		     outcomingConnection;
   private Caller caller;
   private CallListener callListener;
-  private CommandListenerThread commandListenerServer;
-  private CommandListenerThread commandListenerClient;
+  private CallListenerThread callListenerThread;
+  private CommandListenerThread commandListener;
   private final ServerConnection contactDataServer;
   private static enum Status {BUSY, SERVER_NOT_STARTED, OK, CLIENT_CONNECTED, REQUEST_FOR_CONNECT};
   private static enum ConnectionStatus {AS_SERVER, AS_CLIENT, AS_NULL};
-  private final Observer outcomingCallObserver, incomingCallObserver;
+  private final Observer outcomingConnectionObserver,
+			 incomingConnectionObserver,
+			 incomingCallObserver;
   private final HistoryModel messageContainer;
   private ConnectionStatus currentSuccessConnection;
   private Status status;
 
   public Application() {
-    this.currentSuccessConnection = ConnectionStatus.AS_NULL;
+    currentSuccessConnection = ConnectionStatus.AS_NULL;
+    status = Status.SERVER_NOT_STARTED;
     
     try {
       Class.forName("com.mysql.jdbc.Driver");
@@ -40,7 +43,7 @@ public class Application {
       e1.printStackTrace();
     }
     
-    outcomingCallObserver = new Observer() {
+    outcomingConnectionObserver = new Observer() {
       @Override
       public void update(Observable o, Object arg) {
 	SwingUtilities.invokeLater(new Runnable() {
@@ -80,7 +83,7 @@ public class Application {
 	    } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
 		//System.out.println("Disconnect is coming");
 		if (o instanceof CommandListenerThread) {
-		  status = Status.OK;
+		  finishCall();
 		  form.showCallFinishDialog();
 		}
 	    }
@@ -89,7 +92,7 @@ public class Application {
       }
     };
     
-    incomingCallObserver = new Observer() {
+    incomingConnectionObserver = new Observer() {
       @Override
       public void update(Observable o, Object arg) {
 	SwingUtilities.invokeLater(new Runnable() {
@@ -112,12 +115,33 @@ public class Application {
 	    } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
 		//System.out.println("Disconnect is coming");
 		if (o instanceof CommandListenerThread) {
-		  status = Status.OK;
+		  finishCall();
 		  form.showCallFinishDialog();
 		}
 	    }
 	  }
 	});
+      }
+    };
+    
+    incomingCallObserver = new Observer() {
+      @Override
+      public void update(Observable o, Object arg) {
+	if (o instanceof CallListenerThread)
+	  try {
+	    if (status == Status.OK) {
+	      incomingConnection = ((Connection) arg);
+	      currentSuccessConnection = ConnectionStatus.AS_SERVER;
+	      status = Status.CLIENT_CONNECTED;
+	      incomingConnection.sendNickHello(localNick);
+	      commandListener = new CommandListenerThread(incomingConnection);
+	      commandListener.addObserver(incomingConnectionObserver);
+	      commandListener.start();
+	    } else
+	      ((Connection) arg).sendNickBusy(localNick);
+	  } catch (IOException e1) {
+	    e1.printStackTrace();
+	  }
       }
     };
     
@@ -143,7 +167,6 @@ public class Application {
     try {
       incomingConnection.accept();
       status = Status.BUSY;
-      currentSuccessConnection = ConnectionStatus.AS_SERVER;
     } catch (IOException e1) {
       e1.printStackTrace();
     }
@@ -152,6 +175,8 @@ public class Application {
   public void rejectIncomingCall() {
     try {
       incomingConnection.reject();
+      currentSuccessConnection = ConnectionStatus.AS_NULL;
+      status = Status.OK;
     } catch (IOException e1) {
       e1.printStackTrace();
     }
@@ -167,35 +192,15 @@ public class Application {
   }
   
   public void startListeningForCalls() {
-    status = Status.SERVER_NOT_STARTED;
     try {
-      if (callListener == null)
-	callListener = new CallListener();
-      callListener.setLocalNick(localNick);
+      callListener = new CallListener(localNick);
+      callListenerThread = new CallListenerThread(callListener);
+      callListenerThread.addObserver(incomingCallObserver);
+      status = Status.OK;
+      callListenerThread.start();
     } catch (IOException e1) {
       e1.printStackTrace();
     }
-    status = Status.OK;
-    
-    new Thread (new Runnable() {
-      @Override
-      public void run() {
-	try {
-	  incomingConnection = callListener.getConnection();
-	  if (status ==Status.OK) {
-	    status = Status.CLIENT_CONNECTED;
-	    incomingConnection.sendNickHello(localNick);
-	    commandListenerServer = new CommandListenerThread(incomingConnection);
-	    commandListenerServer.addObserver(incomingCallObserver);
-	    commandListenerServer.start();
-	  } else
-	    incomingConnection.sendNickBusy(localNick);
-	  run();
-	} catch (IOException e1) {
-	  e1.printStackTrace();
-	}
-      }
-    }).start();
   }
   
   public void loadContactsFromServer() {
@@ -217,15 +222,15 @@ public class Application {
       if (currentSuccessConnection == ConnectionStatus.AS_SERVER) {
 	incomingConnection.disconnect();
 	incomingConnection.close();
-	commandListenerServer.stop();
-	commandListenerServer.deleteObservers();
       } else
 	if (currentSuccessConnection == ConnectionStatus.AS_CLIENT) {
 	  outcomingConnection.disconnect();
 	  outcomingConnection.close();
-	  commandListenerClient.stop();
-	  commandListenerClient.deleteObservers();
 	}
+      currentSuccessConnection = ConnectionStatus.AS_NULL;
+      commandListener.stop();
+      commandListener.deleteObservers();
+      status = Status.OK;
     } catch (IOException e1) {
       e1.printStackTrace();
     }
@@ -291,12 +296,14 @@ public class Application {
   public void makeOutcomingCall(String remoteIP) {
     caller = new Caller(localNick, remoteIP);
     try {
-      outcomingConnection = caller.call();
-      status = Status.REQUEST_FOR_CONNECT;
-      commandListenerClient = new CommandListenerThread(outcomingConnection);
-      commandListenerClient.addObserver(outcomingCallObserver);
-      currentSuccessConnection = ConnectionStatus.AS_CLIENT;
-      commandListenerClient.start();
+      if (status == Status.OK) {
+	outcomingConnection = caller.call();
+	currentSuccessConnection = ConnectionStatus.AS_CLIENT;
+	status = Status.REQUEST_FOR_CONNECT;
+	commandListener = new CommandListenerThread(outcomingConnection);
+	commandListener.addObserver(outcomingConnectionObserver);
+	commandListener.start();
+      }
     } catch (IOException e1) {
       e1.printStackTrace();
     }
