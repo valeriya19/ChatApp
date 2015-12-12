@@ -203,64 +203,62 @@ class MainForm extends JFrame {
     }
 
     public void showIncomingCallDialog(String nick, String IP) {
-	Object[] option1 = {"Connect", "Disconnect"};
-	    int n1 = JOptionPane.showOptionDialog(this, "User " + nick + " from IP " + IP + " wants to chat with you", "New connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option1, option1[1]);
-	    if (n1 == 0) {
-	      logicModel.acceptIncomingCall();
-	      textFieldNick.setText(nick);
-	      textFieldIp.setText(IP);
-	      textFieldNick.setEnabled(false);
-	      textFieldIp.setEnabled(false);
-	      acceptedCall();
-	    } else {
-	      logicModel.rejectIncomingCall();
-	      rejectedCall();
-	    }
+	Object[] option = {"Connect", "Disconnect"};
+	int n = JOptionPane.showOptionDialog(this, "User " + nick + " from IP " + IP + " wants to chat with you", "New connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
+	if (n == 0) {
+	  logicModel.acceptIncomingCall();
+	  textFieldNick.setText(nick);
+	  textFieldIp.setText(IP);
+	  blockRemoteUserInfo(true);
+	  blockDialogComponents(false);
+	} else {
+	  logicModel.rejectIncomingCall();
+	}
     }
     
     public void showCallFinishDialog() {
-        Object[] option = {"Retry", "Cancel"};
-
-        int n = JOptionPane.showOptionDialog(this, "No successful connection", "Connection Refused", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
-
-        if (n == 0) {
-	    connect.setEnabled(true);
-	    connect.doClick();
-        } else {
-            connect.setEnabled(true);
-            disconnect.setEnabled(false);
-            myText.setEnabled(false);
-            sendButton.setEnabled(false);
-	    messageContainer.clear();
-            messageHistory.setEnabled(false);
-            textFieldIp.setEnabled(true);
-        }
+	blockDialogComponents(true);
+	JOptionPane.showMessageDialog(this, "Remote user disconnected", "Finished connection", JOptionPane.INFORMATION_MESSAGE);
+        blockRemoteUserInfo(false);
     }
     
     public void showCallRetryDialog() {
-      Object[] option = {"Retry", "Cancel"};
-      int n = JOptionPane.showOptionDialog(this, "Remote user canceled the connection", "Canceled connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
+	Object[] option = {"Yes", "No"};
+	int n = JOptionPane.showOptionDialog(this, "Remote user is busy. Try again?", "New connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
+	if (n == 0) {
+	    connect.doClick();
+	}
+	else {
+	    blockRemoteUserInfo(false);
+	}
+    }
+    
+    public void showRecallDialog() {
+      Object[] option = {"Recall", "Cancel"};
+      int n = JOptionPane.showOptionDialog(this, "Remote user cancelled the connection", "Cancelled connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
       if (n == 0)
 	  connect.doClick();
-      else
-	  rejectedCall();
+      else {
+	  blockRemoteUserInfo(false);
+      }
     }
-
-    public void rejectedCall() {
-	textFieldIp.setEnabled(true);
-	myText.setEnabled(false);
-	sendButton.setEnabled(false);
-	messageContainer.clear();
-	messageHistory.setEnabled(false);
+    
+    public void blockDialogComponents(boolean blockingFlag) {
+        disconnect.setEnabled(! blockingFlag);
+        connect.setEnabled(blockingFlag);
+        buttonAddFriends.setEnabled(! blockingFlag);
+        myText.setEnabled(! blockingFlag);
+        sendButton.setEnabled(! blockingFlag);
+	if (! blockingFlag)
+	  messageContainer.clear();
+        messageHistory.setEnabled(! blockingFlag);
     }
-
-    public void acceptedCall() {
-        disconnect.setEnabled(true);
-        connect.setEnabled(false);
-        buttonAddFriends.setEnabled(true);
-        myText.setEnabled(true);
-        sendButton.setEnabled(true);
-	messageContainer.clear();
-        messageHistory.setEnabled(true);
+    
+    public void blockRemoteUserInfo(boolean blockingFlag) {
+	textFieldIp.setEnabled(! blockingFlag);
+    }
+    
+    public void showRemoteNick(String nick) {
+	textFieldNick.setText(nick);
     }
 }

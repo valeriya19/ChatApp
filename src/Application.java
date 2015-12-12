@@ -17,8 +17,8 @@ public class Application {
   private Vector<Vector<String>> friends;
   private Vector<String> header;
   private ContactTableModel contactModel;
-  private Connection serverConnection;
-  private Connection clientConnection;
+  private Connection incomingConnection;
+  private Connection outcomingConnection;
   private Caller caller;
   private CallListener callListener;
   private CommandListenerThread commandListenerServer;
@@ -26,7 +26,7 @@ public class Application {
   private ServerConnection contactDataServer;
   private static enum Status {BUSY, SERVER_NOT_STARTED, OK, CLIENT_CONNECTED, REQUEST_FOR_CONNECT};
   private static enum ConnectionStatus {AS_SERVER, AS_CLIENT, AS_NULL};
-  private final Observer clientObserver, serverObserver;
+  private final Observer outcomingCallObserver, incomingCallObserver;
   private final HistoryModel messageContainer;
   private ConnectionStatus currentSuccessConnection;
   private Status status;
@@ -34,7 +34,13 @@ public class Application {
   public Application() {
     this.currentSuccessConnection = ConnectionStatus.AS_NULL;
     
-    clientObserver = new Observer() {
+    try {
+      Class.forName("com.mysql.jdbc.Driver");
+    } catch (ClassNotFoundException e1) {
+      e1.printStackTrace();
+    }
+    
+    outcomingCallObserver = new Observer() {
       @Override
       public void update(Observable o, Object arg) {
 	SwingUtilities.invokeLater(new Runnable() {
@@ -42,22 +48,29 @@ public class Application {
 	  public void run() {
 	    if (((Command) arg).getType() == Command.CommandType.NICK) {
 		//System.out.println("Nick is coming");
-		if (o instanceof CommandListenerThread)
+		if (o instanceof CommandListenerThread) {
+		  form.showRemoteNick(caller.getRemoteNick());
+		  form.blockRemoteUserInfo(true);
 		  try {
-		    clientConnection.accept();
+		    if (((NickCommand) arg).getBusyStatus()) {
+		      status = Status.OK;
+		      form.showCallRetryDialog();
+		    } else
+		      outcomingConnection.sendNickHello(localNick);
 		  } catch (IOException e1) {
 		    e1.printStackTrace();
 		  }
+		}
 	    } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
 		//System.out.println("Accept is coming");
 		if (o instanceof CommandListenerThread) {
-		  form.acceptedCall();
+		  form.blockDialogComponents(false);
 		}
 	    } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
 		//System.out.println("Reject is coming");
 		if (o instanceof CommandListenerThread) {
 		  currentSuccessConnection = ConnectionStatus.AS_NULL;
-		  form.showCallRetryDialog();
+		  form.showRecallDialog();
 		}
 	    } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
 		//System.out.println("Message is coming");
@@ -67,7 +80,7 @@ public class Application {
 	    } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
 		//System.out.println("Disconnect is coming");
 		if (o instanceof CommandListenerThread) {
-		  status=Status.OK;
+		  status = Status.OK;
 		  form.showCallFinishDialog();
 		}
 	    }
@@ -76,7 +89,7 @@ public class Application {
       }
     };
     
-    serverObserver = new Observer() {
+    incomingCallObserver = new Observer() {
       @Override
       public void update(Observable o, Object arg) {
 	SwingUtilities.invokeLater(new Runnable() {
@@ -84,30 +97,13 @@ public class Application {
 	  public void run() {
 	    if (((Command) arg).getType() == Command.CommandType.NICK) {
 		//System.out.println("Nick is coming");
-		if (o instanceof CommandListenerThread) {
-		  if (status == Status.BUSY)
-		    try {
-		      serverConnection.sendNickBusy(localNick);
-		    } catch (IOException e1) {
-		      e1.printStackTrace();
-		    }
-		  else
-		    try {
-		      serverConnection.sendNickHello(localNick);
-		    } catch (IOException e1) {
-		      e1.printStackTrace();
-		    }
-		}
-	    } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
-		//System.out.println("Accept is coming");
-		if (o instanceof CommandListenerThread) {
-		  form.showIncomingCallDialog(callListener.getRemoteNick(), ((InetSocketAddress) callListener.getRemoteAddress()).getHostString());
-		}
-	    } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
-		//System.out.println("Reject is coming");
-		if (o instanceof CommandListenerThread) {
-		  form.rejectedCall();
-		}
+		form.showIncomingCallDialog(callListener.getRemoteNick(), ((InetSocketAddress) callListener.getRemoteAddress()).getHostString());
+//	    } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
+//		//System.out.println("Accept is coming");
+//		if (o instanceof CommandListenerThread) {}
+//	    } else if (((Command) arg).getType() == Command.CommandType.REJECT) {
+//		//System.out.println("Reject is coming");
+//		if (o instanceof CommandListenerThread) {}
 	    } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
 		//System.out.println("Message is coming");
 		if (o instanceof CommandListenerThread) {
@@ -116,11 +112,8 @@ public class Application {
 	    } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
 		//System.out.println("Disconnect is coming");
 		if (o instanceof CommandListenerThread) {
-		  try {
-		    serverConnection.close();
-		  } catch (IOException e1) {
-		    e1.printStackTrace();
-		  }
+		  status = Status.OK;
+		  form.showCallFinishDialog();
 		}
 	    }
 	  }
@@ -146,7 +139,7 @@ public class Application {
   
   public void acceptIncomingCall() {
     try {
-      serverConnection.accept();
+      incomingConnection.accept();
       status = Status.BUSY;
       currentSuccessConnection = ConnectionStatus.AS_SERVER;
     } catch (IOException e1) {
@@ -156,7 +149,7 @@ public class Application {
   
   public void rejectIncomingCall() {
     try {
-      serverConnection.reject();
+      incomingConnection.reject();
     } catch (IOException e1) {
       e1.printStackTrace();
     }
@@ -167,42 +160,53 @@ public class Application {
       localNick = Protocol.defaultLocalNick;
     else
       localNick = newNick;
+    loadContactsFromServer();
     startListeningForCalls();
   }
   
   public void startListeningForCalls() {
     status = Status.SERVER_NOT_STARTED;
+    try {
+      if (callListener == null)
+	callListener = new CallListener();
+      callListener.setLocalNick(localNick);
+    } catch (IOException e1) {
+      e1.printStackTrace();
+    }
+    status = Status.OK;
+    
     new Thread (new Runnable() {
       @Override
       public void run() {
 	try {
-	    if (callListener==null)
-		callListener = new CallListener();
-	    callListener.setLocalNick(localNick);
-	    serverConnection = callListener.getConnection();
-	    serverConnection.sendNickHello(localNick);
-
-	    commandListenerServer = new CommandListenerThread(serverConnection);
-	    commandListenerServer.addObserver(serverObserver);
+	  incomingConnection = callListener.getConnection();
+	  if (status ==Status.OK) {
+	    status = Status.CLIENT_CONNECTED;
+	    incomingConnection.sendNickHello(localNick);
+	    commandListenerServer = new CommandListenerThread(incomingConnection);
+	    commandListenerServer.addObserver(incomingCallObserver);
 	    commandListenerServer.start();
+	  } else
+	    incomingConnection.sendNickBusy(localNick);
+	  run();
 	} catch (IOException e1) {
-	    e1.printStackTrace();
+	  e1.printStackTrace();
 	}
-
       }
     }).start();
-    status = Status.OK;
-    while (contactModel.getRowCount()>0)
+  }
+  
+  public void loadContactsFromServer() {
+    while (contactModel.getRowCount() > 0)
       contactModel.removeRow(0);
-    contactDataServer = new ServerConnection(null,localNick);
-    contactDataServer.setServerAddress("jdbc:mysql://files.litvinov.in.ua/chatapp_server?characterEncoding=utf-8&useUnicode=true");
+    contactDataServer = new ServerConnection("jdbc:mysql://files.litvinov.in.ua/chatapp_server?characterEncoding=utf-8&useUnicode=true", localNick);
     contactDataServer.connect();
     String[] nicknames = contactDataServer.getAllNicks();
     for (String nick:nicknames) {
-	Vector<String> row = new Vector<String>(2);
-	row.add(nick);
-	row.add(contactDataServer.getIpForNick(nick));
-	contactModel.addRow(row);
+      Vector<String> row = new Vector<String>(2);
+      row.add(nick);
+      row.add(contactDataServer.getIpForNick(nick));
+      contactModel.addRow(row);
     }
     contactDataServer.goOnline();
   }
@@ -211,14 +215,14 @@ public class Application {
     try {
       //System.out.println(currentSuccessConnection);
       if (currentSuccessConnection == ConnectionStatus.AS_SERVER) {
-	serverConnection.disconnect();
-	serverConnection.close();
+	incomingConnection.disconnect();
+	incomingConnection.close();
 	commandListenerServer.stop();
 	commandListenerServer.deleteObservers();
       } else
-	if (currentSuccessConnection == ConnectionStatus.AS_SERVER) {
-	  clientConnection.disconnect();
-	  clientConnection.close();
+	if (currentSuccessConnection == ConnectionStatus.AS_CLIENT) {
+	  outcomingConnection.disconnect();
+	  outcomingConnection.close();
 	  commandListenerClient.stop();
 	  commandListenerClient.deleteObservers();
 	}
@@ -230,10 +234,10 @@ public class Application {
   public void sendMessage(String text) {
     try {
       if (currentSuccessConnection == ConnectionStatus.AS_SERVER) {
-	serverConnection.sendMessage(text);
+	incomingConnection.sendMessage(text);
       } else 
 	if (currentSuccessConnection == ConnectionStatus.AS_CLIENT) {
-	  clientConnection.sendMessage(text);
+	  outcomingConnection.sendMessage(text);
       }
       addMessage(text);
     } catch (IOException e1) {
@@ -264,7 +268,7 @@ public class Application {
 	friends.add(tmp);
       }
     } catch (FileNotFoundException e) {
-	//System.out.println("File Not Found");
+	//System.out.println("File not found");
     } catch (IOException e) {
 	e.printStackTrace();
 	//System.out.println("Error in reading file");
@@ -275,33 +279,27 @@ public class Application {
   public void saveContactsToFile() {
     try (FileWriter fileWriter = new FileWriter("friendList.chat")) {
       for (int i = 1; i < contactModel.getRowCount(); i++) {
-	  fileWriter.write(contactModel.getValueAt(i, 0).toString() + Protocol.endOfLine);
-	  fileWriter.write(contactModel.getValueAt(i, 1).toString() + Protocol.endOfLine);
+	fileWriter.write(contactModel.getValueAt(i, 0).toString() + Protocol.endOfLine);
+	fileWriter.write(contactModel.getValueAt(i, 1).toString() + Protocol.endOfLine);
       }
     } catch (IOException e1) {
-	e1.printStackTrace();
+      e1.printStackTrace();
     }
     contactDataServer.goOffline();
   }
   
   public void makeOutcomingCall(String remoteIP) {
-    new Thread(new Runnable() {
-      @Override
-      public void run() {
-	  caller = new Caller(localNick, remoteIP);
-	  try {
-	      clientConnection = caller.call();
-	      commandListenerClient = new CommandListenerThread(clientConnection);
-	      commandListenerClient.addObserver(clientObserver);
-	      currentSuccessConnection = ConnectionStatus.AS_CLIENT;
-	      commandListenerClient.start();
-	      clientConnection.sendNickHello(localNick);
-	  } catch (IOException e1) {
-	      e1.printStackTrace();
-	  }
-      }
-    }).start();
-    status = Status.REQUEST_FOR_CONNECT;
+    caller = new Caller(localNick, remoteIP);
+    try {
+      outcomingConnection = caller.call();
+      status = Status.REQUEST_FOR_CONNECT;
+      commandListenerClient = new CommandListenerThread(outcomingConnection);
+      commandListenerClient.addObserver(outcomingCallObserver);
+      currentSuccessConnection = ConnectionStatus.AS_CLIENT;
+      commandListenerClient.start();
+    } catch (IOException e1) {
+      e1.printStackTrace();
+    }
   }
   
   private void addMessage(String msgText) {
