@@ -6,13 +6,10 @@ public class ServerConnection {
 
   private String serverAddress;
   private String localNick;
-
   private Connection con;
   private Statement st;
 
-  public ServerConnection() {
-
-  }
+  public ServerConnection() {}
 
   public ServerConnection(String address) {
     this(address, null);
@@ -122,7 +119,7 @@ public class ServerConnection {
     } catch (SQLException e) {
       boolean nick_collision = true;
       try {
-	if (getIpForNick(localNick) != null) {			// if nick collision
+	if (getIpForNick(localNick) != null) {// if nick collision
 	  q = "UPDATE user set ip=SUBSTRING_INDEX(USER(),'@',-1), online=1, port=" + port + " WHERE nick='" + localNick + "';";
 	  nick_collision = true;
 	} else {										// if address collision
@@ -230,25 +227,14 @@ public class ServerConnection {
   }
 
   public static void main(String[] args) {
-    String nick1 = "latin&кириллица";
-    String nick2 = "another";
-
     ServerConnection c = new ServerConnection();
     c.setServerAddress("jdbc:mysql://files.litvinov.in.ua/chatapp_server?characterEncoding=utf-8&useUnicode=true");
     c.connect();
-    assert c.isConnected();
-    c.setLocalNick(nick1);
-    System.out.println("Before: " + c.isNickOnline(nick1));
+    c.setLocalNick("nick1");
+    System.out.println(c.isNickOnline("nick1"));
     c.goOnline();
-    System.out.println("After: " + c.isNickOnline(nick1));
+    System.out.println(c.isNickOnline("nick1"));
     c.goOffline();
-    System.out.println("After offline: " + c.isNickOnline(nick1));
-
-    System.out.println("Another nick: " + c.isNickOnline(nick2));
-    System.out.println("My ip: " + c.getIpForNick(nick1));
-    System.out.println("Other ip: " + c.getIpForNick(nick2));
-
-    System.out.println("My port: " + c.getPortForNick(nick1));
-    System.out.println("Other port: " + c.getPortForNick(nick2));
+    System.out.println(c.isNickOnline("nick1"));
   }// main
 }
