@@ -14,8 +14,6 @@ import javax.swing.SwingUtilities;
 public class Application {
   private MainForm form;
   private String localNick;
-  private Vector<Vector<String>> friends;
-  private final Vector<String> header;
   private ContactTableModel contactModel;
   private Connection incomingConnection,
 		     outcomingConnection;
@@ -145,10 +143,10 @@ public class Application {
       }
     };
     
-    header = new Vector<String>(2);
+    Vector<String> header = new Vector<String>(2);
     header.add("Nick");
     header.add("IP");
-    friends = new Vector<Vector<String>>();
+    contactModel = new ContactTableModel(header, 0);
     
     loadContactsFromFile();
     
@@ -271,7 +269,7 @@ public class Application {
 	String ip = bufferedReader.readLine();
 	tmp.add(nick);
 	tmp.add(ip);
-	friends.add(tmp);
+	contactModel.addRow(tmp);
       }
     } catch (FileNotFoundException e) {
 	//System.out.println("File not found");
@@ -279,7 +277,6 @@ public class Application {
 	e.printStackTrace();
 	//System.out.println("Error in reading file");
     }
-    contactModel = new ContactTableModel(header, friends);
   }
   
   public void saveContactsToFile() {
