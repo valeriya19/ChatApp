@@ -138,8 +138,7 @@ class MainForm extends JFrame {
         });
 
         //copy info from friend list to our textField
-        ListSelectionModel listSelectionModel = tableFriends.getSelectionModel();
-        listSelectionModel.addListSelectionListener(new ListSelectionListener() {
+        tableFriends.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(ListSelectionEvent e) {
                 if (tableFriends.getSelectedRow() > 0) {

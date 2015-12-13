@@ -10,11 +10,13 @@ import java.util.Observer;
 import java.util.Vector;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
 
 public class Application {
   private MainForm form;
   private String localNick;
-  private ContactTableModel contactModel;
+  private DefaultTableModel contactModel;
   private Connection incomingConnection,
 		     outcomingConnection;
   private Caller caller;
@@ -146,8 +148,7 @@ public class Application {
     Vector<String> header = new Vector<String>(2);
     header.add("Nick");
     header.add("IP");
-    contactModel = new ContactTableModel(header, 0);
-    
+    contactModel = new DefaultTableModel(header, 0);
     loadContactsFromFile();
     
     messageContainer = new HistoryModel();
@@ -203,7 +204,7 @@ public class Application {
   }
   
   public void loadContactsFromServer() {
-    contactModel.clear();
+    contactModel.getDataVector().clear();
     contactDataServer.connect();
     String[] nicknames = contactDataServer.getAllNicks();
     for (String nick: nicknames) {
@@ -313,7 +314,7 @@ public class Application {
     }
   }
   
-  public ContactTableModel getContactModel() {
+  public TableModel getContactModel() {
     return contactModel;
   }
   
