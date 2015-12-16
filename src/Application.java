@@ -246,7 +246,6 @@ public class Application {
 	if (currentSuccessConnection == ConnectionStatus.AS_CLIENT) {
 	  outcomingConnection.sendMessage(text);
       }
-      addMessage(localNick, text);
     } catch (IOException e1) {
       e1.printStackTrace();
     }
@@ -312,7 +311,7 @@ public class Application {
     }
   }
   
-  private void addMessage(String nick, String msgText) {
+  public void addMessage(String nick, String msgText) {
     if (msgText != null) {
       messageContainer.addMessage(nick, new Date(System.currentTimeMillis()), msgText);
     }

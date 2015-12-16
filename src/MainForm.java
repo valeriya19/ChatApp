@@ -87,8 +87,12 @@ class MainForm extends JFrame {
 	sendButton.addActionListener(new ActionListener() {
 	  @Override
 	  public void actionPerformed(ActionEvent e) {
-	    logicModel.sendMessage(myText.getText());
-	    myText.setText("");
+	    String text = myText.getText();
+	    if (! text.isEmpty()) {
+	      logicModel.sendMessage(text);
+	      logicModel.addMessage(logicModel.getLocalNick(), text);
+	      myText.setText("");
+	    }
 	  }
 	});
 
