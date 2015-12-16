@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.util.NoSuchElementException;
 import java.util.Observable;
 
 /**
@@ -41,7 +42,7 @@ class CommandListenerThread extends Observable implements Runnable {
                     setChanged();
                     notifyObservers(checked);
                 }
-            } catch (IOException ex) {
+            } catch (IOException | NoSuchElementException ex) {
                 stopped = true;
             }
         } while (!stopped);

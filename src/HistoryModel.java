@@ -38,11 +38,13 @@ class HistoryModel extends Observable {
   
   public void addMessage(String nick, Date date, String text) {
     messages.add(new Message(nick, date, text));
+    setChanged();
     notifyObservers(messages);
   }
   
   public void clear() {
     messages.clear();
+    setChanged();
     notifyObservers(messages);
   }
   

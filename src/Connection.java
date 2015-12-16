@@ -2,13 +2,14 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 /**
  *
  * @author M-Sh-97
  */
-public class Connection {
+class Connection {
 
   private final Socket connectionSocket;
   private final Scanner input;
@@ -28,37 +29,39 @@ public class Connection {
     return connectionSocket.isConnected();
   }
   
-  public Command receive() throws IOException {
-    StringBuilder it = new StringBuilder(Protocol.encoding);
-    do {
-      it.append(input.nextLine());
+  public Command receive() throws IOException, NoSuchElementException {
+    StringBuilder it = new StringBuilder();
+    it.append(input.nextLine());
+    if (it.toString().equalsIgnoreCase(Protocol.messageCommandPhrase)) {
       it.append(Protocol.endOfLine);
-    } while (input.hasNextLine());
+      it.append(input.nextLine());
+    }
+    it.append(Protocol.endOfLine);
     return Command.getCommand(it.toString());
   }
   
   public void accept() throws IOException {
-    output.write("ACCEPTED" + Protocol.endOfLine);
+    output.write(Protocol.acceptionCommandPhrase + Protocol.endOfLine);
     output.flush();
   }
   
   public void reject() throws IOException {
-    output.write("REJECTED" + Protocol.endOfLine);
+    output.write(Protocol.rejectionCommandPhrase + Protocol.endOfLine);
     output.flush();
   }
 
   public void sendNickHello(String nickName) throws IOException {
-    output.write(Protocol.programName + " " + Protocol.version + " user " + nickName + Protocol.endOfLine);
+    output.write(Protocol.programName + " " + Protocol.version + " " + Protocol.nickCommandPhrase + " " + nickName + Protocol.endOfLine);
     output.flush();
   }
   
   public void sendNickBusy(String nickName) throws IOException {
-    output.write(Protocol.programName + " " + Protocol.version + " user " + nickName + " busy" + Protocol.endOfLine);
+    output.write(Protocol.programName + " " + Protocol.version + " " + Protocol.nickCommandPhrase + " " + nickName + " busy" + Protocol.endOfLine);
     output.flush();
   }
   
   public void disconnect() throws IOException {
-    output.write("DISCONNECT" + Protocol.endOfLine);
+    output.write(Protocol.disconnectionCommandPhrase + Protocol.endOfLine);
     output.flush();
   }
   
@@ -67,7 +70,7 @@ public class Connection {
   }
   
   public void sendMessage(String message) throws IOException {
-    output.write("MESSAGE" + Protocol.endOfLine);
+    output.write(Protocol.messageCommandPhrase + Protocol.endOfLine);
     output.write(message + Protocol.endOfLine);
     output.flush();
   }

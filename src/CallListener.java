@@ -67,4 +67,8 @@ class CallListener {
     public void setListenAddress(SocketAddress listenAddress) {
         this.listenAddress = listenAddress;
     }
+
+    public void setRemoteNick(String remoteNick) {
+        this.remoteNick = remoteNick;
+    }
 }

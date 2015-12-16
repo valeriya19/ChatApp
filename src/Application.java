@@ -52,6 +52,7 @@ public class Application {
 	    if (((Command) arg).getType() == Command.CommandType.NICK) {
 		//System.out.println("Nick is coming");
 		if (o instanceof CommandListenerThread) {
+		  caller.setRemoteNick(((NickCommand) arg).getNick());
 		  form.showRemoteNick(caller.getRemoteNick());
 		  form.blockRemoteUserInfo(true);
 		  try {
@@ -78,7 +79,7 @@ public class Application {
 	    } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
 		//System.out.println("Message is coming");
 		if (o instanceof CommandListenerThread) {
-		  addMessage(((MessageCommand) arg).getMessage());
+		  addMessage(caller.getRemoteNick(), ((MessageCommand) arg).getMessage());
 		}
 	    } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
 		//System.out.println("Disconnect is coming");
@@ -100,6 +101,7 @@ public class Application {
 	  public void run() {
 	    if (((Command) arg).getType() == Command.CommandType.NICK) {
 		//System.out.println("Nick is coming");
+	      	callListener.setRemoteNick(((NickCommand) arg).getNick());
 		form.showIncomingCallDialog(callListener.getRemoteNick(), ((InetSocketAddress) callListener.getRemoteAddress()).getHostString());
 //	    } else if (((Command) arg).getType() == Command.CommandType.ACCEPT) {
 //		//System.out.println("Accept is coming");
@@ -110,7 +112,7 @@ public class Application {
 	    } else if (((Command) arg).getType() == Command.CommandType.MESSAGE) {
 		//System.out.println("Message is coming");
 		if (o instanceof CommandListenerThread) {
-		  addMessage(((MessageCommand) arg).getMessage());
+		  addMessage(callListener.getRemoteNick(), ((MessageCommand) arg).getMessage());
 		}
 	    } else if (((Command) arg).getType() == Command.CommandType.DISCONNECT) {
 		//System.out.println("Disconnect is coming");
@@ -244,7 +246,7 @@ public class Application {
 	if (currentSuccessConnection == ConnectionStatus.AS_CLIENT) {
 	  outcomingConnection.sendMessage(text);
       }
-      addMessage(text);
+      addMessage(localNick, text);
     } catch (IOException e1) {
       e1.printStackTrace();
     }
@@ -282,14 +284,15 @@ public class Application {
   
   public void saveContactsToFile() {
     try (FileWriter fileWriter = new FileWriter(Protocol.contactFileName)) {
-      for (int i = 1; i < contactModel.getRowCount(); i++) {
+      for (int i = 0; i < contactModel.getRowCount(); i++) {
 	fileWriter.write(contactModel.getValueAt(i, 0).toString() + Protocol.endOfLine);
 	fileWriter.write(contactModel.getValueAt(i, 1).toString() + Protocol.endOfLine);
       }
     } catch (IOException e1) {
       e1.printStackTrace();
     }
-    contactDataServer.goOffline();
+    if (contactDataServer.isNickOnline(localNick))
+      contactDataServer.goOffline();
   }
   
   public void makeOutcomingCall(String remoteIP) {
@@ -305,12 +308,13 @@ public class Application {
       }
     } catch (IOException e1) {
       e1.printStackTrace();
+      form.showNoConnectionDialog();
     }
   }
   
-  private void addMessage(String msgText) {
+  private void addMessage(String nick, String msgText) {
     if (msgText != null) {
-      messageContainer.addMessage(localNick, new Date(System.currentTimeMillis()), msgText);
+      messageContainer.addMessage(nick, new Date(System.currentTimeMillis()), msgText);
     }
   }
   

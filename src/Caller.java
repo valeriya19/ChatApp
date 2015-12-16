@@ -6,7 +6,7 @@ import java.net.SocketAddress;
 /**
  * @author katebudyanskaya
  */
-public class Caller {
+class Caller {
     private String localNick, remoteNick;
     private SocketAddress remoteAddress;
     private CallStatus status;
@@ -32,7 +32,6 @@ public class Caller {
 
     public Connection call() throws IOException {
         Socket s = new Socket();
-//	s.bind(new InetSocketAddress(s.getLocalAddress(), Protocol.port));
         s.connect(remoteAddress);
         return new Connection(s);
     }
@@ -59,5 +58,9 @@ public class Caller {
 
     public void setRemoteAddress(SocketAddress remoteAddress) {
         this.remoteAddress = remoteAddress;
+    }
+
+    public void setRemoteNick(String remoteNick) {
+        this.remoteNick = remoteNick;
     }
 }

@@ -8,7 +8,12 @@ interface Protocol {
                         encoding = "UTF-8",
                         defaultLocalNick = "unnamed",
                         version = "2015",
-                        programName = "ChatApp",
+                        programName = "CHATAPP",
 			serverAddress = "jdbc:mysql://files.litvinov.in.ua/chatapp_server?characterEncoding=utf-8&useUnicode=true",
-			contactFileName = "friendList.chat";
+			contactFileName = "friendList.chat",
+  			acceptionCommandPhrase = "ACCEPTED",
+  			rejectionCommandPhrase = "REJECTED",
+	    		disconnectionCommandPhrase = "DISCONNECT",
+			messageCommandPhrase = "MESSAGE",
+  			nickCommandPhrase = "USER";
 }
