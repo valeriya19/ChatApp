@@ -14,6 +14,7 @@ class MainForm extends JFrame {
     private JButton connect,
                     disconnect,
                     buttonAddFriends,
+		    buttonRemoveFriends,
                     buttonChangeLocalNick,
                     sendButton;
     private JTextField textFieldIp,
@@ -22,7 +23,7 @@ class MainForm extends JFrame {
                        myText;
     private JTable tableFriends;
     private JTextArea messageHistory;
-    
+
     private HistoryModel messageContainer;
 
     private final Observer historyViewObserver;
@@ -41,6 +42,7 @@ class MainForm extends JFrame {
         textFieldNick.setEnabled(false);
         tableFriends.setEnabled(false);
         buttonAddFriends.setEnabled(false);
+      	buttonRemoveFriends.setEnabled(false);
         myText.setEnabled(false);
         sendButton.setEnabled(false);
 	
@@ -50,40 +52,16 @@ class MainForm extends JFrame {
         messageHistory.setAutoscrolls(true);
 	messageContainer = logicModel.getMessageHistoryModel();
 
-        sendButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-	      logicModel.sendMessage(myText.getText());
-	      myText.setText("");
-            }
-        });
-
-        disconnect.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-		logicModel.finishCall();
-                textFieldIp.setEnabled(true);
-                connect.setEnabled(true);
-                disconnect.setEnabled(false);
-                myText.setEnabled(false);
-                sendButton.setEnabled(false);
-                messageHistory.setEnabled(false);
-		buttonChangeLocalNick.setEnabled(true);
-		buttonChangeLocalNick.doClick();
-            }
-        });
-	
 	historyViewObserver = new Observer() {
 	  @Override
 	  public void update(Observable o, Object arg) {
 	    if (((Vector<String>) arg).isEmpty())
 	      messageHistory.setText("");
 	    else {
-	      String last = messageHistory.getText();
-	      if (!last.isEmpty())
-		last = last + Protocol.endOfLine;
-	      HistoryModel.Message msgText = messageContainer.getMessage(messageContainer.getSize() - 1);
-	      messageHistory.setText(last + msgText.getNick() + ". " + msgText.getDate().toString() + "." + Protocol.endOfLine);
+	      if (! messageHistory.getText().isEmpty())
+		messageHistory.append(Protocol.endOfLine);
+	      HistoryModel.Message msgData = messageContainer.getMessage(messageContainer.getSize() - 1);
+	      messageHistory.append(msgData.getNick() + ". " + msgData.getDate().toString() + "." + Protocol.endOfLine + msgData.getText() + Protocol.endOfLine);
 	    }
 	  }
 	};
@@ -97,7 +75,43 @@ class MainForm extends JFrame {
             }
         });
 
-        //dialog when we want to close the program
+	disconnect.addActionListener(new ActionListener() {
+	  @Override
+	  public void actionPerformed(ActionEvent e) {
+	    blockDialogComponents(true);
+	    logicModel.finishCall();
+	    blockRemoteUserInfo(false);
+	  }
+	});
+
+	sendButton.addActionListener(new ActionListener() {
+	  @Override
+	  public void actionPerformed(ActionEvent e) {
+	    logicModel.sendMessage(myText.getText());
+	    myText.setText("");
+	  }
+	});
+
+	//Change local nick and activate next field
+	buttonChangeLocalNick.addActionListener(new ActionListener() {
+	  @Override
+	  public void actionPerformed(ActionEvent e) {
+	    String fln = textFieldLocalNick.getText();
+	    logicModel.applyLocalNick(fln);
+	    if (fln.isEmpty()) {
+	      textFieldLocalNick.setText(Protocol.defaultLocalNick);
+	    }
+	    connect.setEnabled(true);
+	    buttonAddFriends.setEnabled(true);
+	    buttonRemoveFriends.setEnabled(true);
+	    textFieldIp.setEnabled(true);
+	    tableFriends.setEnabled(true);
+	    textFieldLocalNick.setEnabled(false);
+	    buttonChangeLocalNick.setEnabled(false);
+	  }
+	});
+
+      	//dialog when we want to close the program
         this.addWindowListener(new WindowListener() {
             @Override
             public void windowOpened(WindowEvent e) {}
@@ -133,9 +147,21 @@ class MainForm extends JFrame {
         buttonAddFriends.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                logicModel.addContact(textFieldNick.getText(), textFieldIp.getText());
+		if (! ((textFieldIp.getText().isEmpty()) || (textFieldNick.getText().isEmpty())))
+		    logicModel.addContact(textFieldNick.getText(), textFieldIp.getText());
             }
         });
+
+	buttonRemoveFriends.addActionListener(new ActionListener() {
+	    @Override
+	    public void actionPerformed(ActionEvent e) {
+	      int sr = tableFriends.getSelectedRow();
+	      if (sr >= 0) {
+		logicModel.removeContact(sr);
+		tableFriends.clearSelection();
+	      }
+	    }
+	});
 
         //copy info from friend list to our textField
         tableFriends.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
@@ -154,29 +180,8 @@ class MainForm extends JFrame {
         tableFriends.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == 127) { //delete
-                    int sr = tableFriends.getSelectedRow();
-		    logicModel.removeContact(sr);
-		    if (sr >= 0)                        
-                        tableFriends.clearSelection();
-		}
-            }
-        });
-
-        //Change local nick and activate next field
-        buttonChangeLocalNick.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String fln = textFieldLocalNick.getText();
-		logicModel.applyLocalNick(fln);
-		if (fln.isEmpty()) {
-		  textFieldLocalNick.setText(Protocol.defaultLocalNick);
-		}
-                connect.setEnabled(true);
-                textFieldIp.setEnabled(true);
-                tableFriends.setEnabled(true);
-                textFieldLocalNick.setEnabled(false);
-                buttonChangeLocalNick.setEnabled(false);
+                if (e.getKeyCode() == 127) //delete
+                    buttonRemoveFriends.doClick();
             }
         });
 
@@ -184,19 +189,24 @@ class MainForm extends JFrame {
         textFieldLocalNick.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyChar() == '\n')
+                if (e.getKeyCode() == 10) //enter
                     buttonChangeLocalNick.doClick();
-                super.keyPressed(e);
             }
         });
 
         myText.addKeyListener(new KeyAdapter() {
             @Override
-            public void keyTyped(KeyEvent e) {
-                if (e.getKeyChar() == '\n')
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == 10) //enter
                     sendButton.doClick();
-                else
-                    super.keyTyped(e);
+            }
+        });
+	
+	textFieldIp.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == 10) //enter
+                    connect.doClick();
             }
         });
     }
@@ -223,7 +233,7 @@ class MainForm extends JFrame {
     
     public void showCallRetryDialog() {
 	Object[] option = {"Yes", "No"};
-	int n = JOptionPane.showOptionDialog(this, "Remote user is busy. Try again?", "New connection", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
+	int n = JOptionPane.showOptionDialog(this, "Remote user is busy. Try again?", "Busy", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, option, option[1]);
 	if (n == 0) {
 	    connect.doClick();
 	}
@@ -241,11 +251,15 @@ class MainForm extends JFrame {
 	  blockRemoteUserInfo(false);
       }
     }
+
+    public void showNoConnectionDialog() {
+      JOptionPane.showMessageDialog(this, "Cannot connect", "Unsuccessful connection", JOptionPane.INFORMATION_MESSAGE);
+      blockRemoteUserInfo(false);
+    }
     
     public void blockDialogComponents(boolean blockingFlag) {
         disconnect.setEnabled(! blockingFlag);
         connect.setEnabled(blockingFlag);
-        buttonAddFriends.setEnabled(! blockingFlag);
         myText.setEnabled(! blockingFlag);
         sendButton.setEnabled(! blockingFlag);
 	if (! blockingFlag)
