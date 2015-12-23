@@ -16,4 +16,6 @@ manifest.mf
 .gitignore
 *.iml
 .idea
+out
+
 
