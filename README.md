@@ -1,16 +1,7 @@
-# ChatApp
-Base repo for collective 2-year students' project
+План выполнения этапов 1 и 2 (командных) и оценивание: http://litvinov.in.ua/files/3_semester/labs.
 
-## Инструкция
-1. **Один** из членов команды делает **"fork"** этого репозитория в своем аккаунте.
-2. **Каждый** член команды клонирует форк из п.1 *локально* у себя на ПК во **временную папку**: git clone http://github.com/your_boss_account/ChatApp tmp_dir
-3. Каждый создает у себя проект в Eclipse (или другой IDE).
-4. Перемещает все содержимое папки tmp_dir в папку с вновь созданным проектом (в том числе скрытые элементы .git и .gitignore!)
-5. "Босс" из п.1 дает доступ на запись в свой репозиторий каждому участнику команды (settings->collaborators)
+Javadoc на классы от преподавателя: http://dimalit.github.io/ChatApp/index.html.
 
-## Далее
-Javadoc на классы от преподавателя можно посмотреть **тут**: http://dimalit.github.io/ChatApp/index.html
+Стандартный ход действий при разработке: вытягивание (git pull) - добавление (git add) - фиксация (git commit) - выталкивание (git push).
 
-Стандартный цикл разработки: git pull - git add - git commit - git push
-
-Как тут: http://rogerdudler.github.io/git-guide/
+Руководства по Git: http://rogerdudler.github.io/git-guide, https://try.github.io.
