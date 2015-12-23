@@ -1,77 +1,93 @@
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 /**
- *
- * @author M-Sh-97
+ * Created by 81k5_Pr0g3r on 22.12.15.
  */
-class Connection {
+public class Connection {
+    Socket socket;
+    Scanner scanner;
+    OutputStreamWriter writer;
+    String nick;
 
-  private final Socket connectionSocket;
-  private final Scanner input;
-  private final PrintWriter output;
-  
-  public Connection(Socket s) throws IOException {
-    connectionSocket = s;
-    input = new Scanner(this.connectionSocket.getInputStream(), Protocol.encoding);
-    output = new PrintWriter(new OutputStreamWriter(this.connectionSocket.getOutputStream(), Protocol.encoding), true);
-  }
-  
-  public boolean isOpen() {
-    return !connectionSocket.isClosed();
-  }
-  
-  public boolean isConnected() {
-    return connectionSocket.isConnected();
-  }
-  
-  public Command receive() throws IOException, NoSuchElementException {
-    StringBuilder it = new StringBuilder();
-    it.append(input.nextLine());
-    if (it.toString().equalsIgnoreCase(Protocol.messageCommandPhrase)) {
-      it.append(Protocol.endOfLine);
-      it.append(input.nextLine());
+    public Connection(Socket socket, String nick) {
+        this.socket = socket;
+        this.nick = nick;
+
+        try {
+            scanner = new Scanner(socket.getInputStream());
+            writer = new OutputStreamWriter(socket.getOutputStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
-    it.append(Protocol.endOfLine);
-    return Command.getCommand(it.toString());
-  }
-  
-  public void accept() throws IOException {
-    output.write(Protocol.acceptionCommandPhrase + Protocol.endOfLine);
-    output.flush();
-  }
-  
-  public void reject() throws IOException {
-    output.write(Protocol.rejectionCommandPhrase + Protocol.endOfLine);
-    output.flush();
-  }
 
-  public void sendNickHello(String nickName) throws IOException {
-    output.write(Protocol.programName + " " + Protocol.version + " " + Protocol.nickCommandPhrase + " " + nickName + Protocol.endOfLine);
-    output.flush();
-  }
-  
-  public void sendNickBusy(String nickName) throws IOException {
-    output.write(Protocol.programName + " " + Protocol.version + " " + Protocol.nickCommandPhrase + " " + nickName + " busy" + Protocol.endOfLine);
-    output.flush();
-  }
-  
-  public void disconnect() throws IOException {
-    output.write(Protocol.disconnectionCommandPhrase + Protocol.endOfLine);
-    output.flush();
-  }
-  
-  public void close() throws IOException {
-    connectionSocket.close();
-  }
-  
-  public void sendMessage(String message) throws IOException {
-    output.write(Protocol.messageCommandPhrase + Protocol.endOfLine);
-    output.write(message + Protocol.endOfLine);
-    output.flush();
-  }
+
+
+    public Command readCommand()
+    {
+        if (scanner.hasNextLine()){
+
+            String Input=scanner.nextLine();
+            String input=Input.toUpperCase();
+
+            if (input.compareTo("ACCEPT")==0){
+                return new Command(Command.CommandType.CT_ACCEPT,"");
+            } else if (input.compareTo("DECLINE")==0){
+                return new Command(Command.CommandType.CT_REJECT,"");
+            } else if (input.compareTo("DISCONNECT")==0){
+                return new Command(Command.CommandType.CT_DISCONNECT,"");
+            } else if (input.compareTo("MESSAGE")==0){
+                return new Command(Command.CommandType.CT_MESSAGE,scanner.nextLine());
+            }
+            if (input.indexOf("CHATAPP "+ChatProtocol.ver+" USER ")==0)
+            {
+                String name = input.substring(18);
+                this.nick=name;
+                return new Command(Command.CommandType.CT_HELLO,"");
+            }
+
+        }
+        return null;
+    }
+
+    public void Hello() throws IOException {
+        writer.write("ChatApp "+ChatProtocol.ver+" user "+ChatProtocol.LocalNick+"\n");
+        writer.flush();
+    }
+    public void Accept() throws IOException {
+        writer.write("ACCEPT\n");
+        writer.flush();
+    }
+    public void Decline() throws IOException {
+        writer.write("DECLINE\n");
+        writer.flush();
+        close();
+    }
+    public void Message(String textMessage) throws IOException {
+        writer.write("MESSAGE\n");
+        writer.write(textMessage+"\n");
+        writer.flush();
+    }
+    public void Disconnect() throws IOException {
+        writer.write("DISCONNECT\n");
+        writer.flush();
+        close();
+    }
+
+    public String getRemoteAddress(){
+        return socket.getRemoteSocketAddress().toString();
+    }
+
+    public void close(){
+        try {
+            socket.close();
+            System.out.println(socket.isConnected());
+            System.out.println(socket.isClosed());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
